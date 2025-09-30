@@ -5,7 +5,10 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.1.1] - 2025-01-27
+## [0.1.2]
+  - Bumped version to 0.1.2
+
+## [0.1.1]
 
 ### Added
 - **Authentication Provider Integration**: Automatic subscriber management through authentication providers
@@ -40,7 +43,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Code Examples**: Detailed examples for Firebase, Supabase, and manual configurations
 - **Configuration Reference**: Updated configuration options table with `authProvider` parameter
 
-## [0.1.0] - 2025-01-27
+## [0.1.0] 
 
 ### Added
 - **Workflow Execution API**: Complete workflow execution system with support for immediate and scheduled workflows
