@@ -5,13 +5,67 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.1] - 2025-01-27
+
+### Added
+- **Authentication Provider Integration**: Automatic subscriber management through authentication providers
+  - `AuthProvider` enum with support for `firebase`, `supabase`, and `none` options
+  - `authProvider` parameter in `PushFireConfig` for configuring authentication integration
+  - Automatic subscriber login/logout based on authentication state changes
+
+### Enhanced
+- **Firebase Authentication Integration**:
+  - Automatic listening for `authStateChanges()` from `FirebaseAuth.instance`
+  - Auto-login with user UID as external ID, plus email, display name, and phone number
+  - Auto-logout when user signs out of Firebase Authentication
+
+- **Supabase Authentication Integration**:
+  - Automatic listening for `onAuthStateChange` events from Supabase client
+  - Auto-login with user ID as external ID, plus email, full_name metadata, and phone number
+  - Auto-logout when user signs out of Supabase Authentication
+
+- **Configuration Options**:
+  - Added `authProvider` parameter to `PushFireConfig` class
+  - Defaults to `AuthProvider.none` for manual subscriber management
+  - Comprehensive documentation for all authentication provider options
+
+### Technical Implementation
+- **Service Integration**: Authentication state listeners integrated into `PushFireSDKImpl`
+- **Dependency Management**: Support for both `firebase_auth` and `supabase_flutter` packages
+- **Error Handling**: Graceful handling of authentication state changes and edge cases
+- **Logging**: Comprehensive logging for authentication events and state changes
+
+### Documentation
+- **README Updates**: Complete authentication provider configuration guide
+- **Code Examples**: Detailed examples for Firebase, Supabase, and manual configurations
+- **Configuration Reference**: Updated configuration options table with `authProvider` parameter
+
 ## [0.1.0] - 2025-01-27
 
 ### Added
-- Workflow execution API with support for immediate and scheduled workflows
-- Target-based execution for subscribers and segments
-- New `WorkflowService` and related data models
-- Updated example application with workflow execution demo
+- **Workflow Execution API**: Complete workflow execution system with support for immediate and scheduled workflows
+  - `createWorkflowExecution()` - Advanced method for custom workflow execution requests
+  - `createImmediateWorkflowForSubscribers()` - Execute workflows immediately for specific subscribers
+  - `createImmediateWorkflowForSegments()` - Execute workflows immediately for specific segments
+  - `createScheduledWorkflowForSubscribers()` - Schedule workflows for future execution targeting subscribers
+  - `createScheduledWorkflowForSegments()` - Schedule workflows for future execution targeting segments
+
+- **New Data Models**:
+  - `WorkflowExecutionRequest` - Main request model with validation and JSON serialization
+  - `WorkflowTarget` - Target configuration supporting subscribers and segments
+  - `WorkflowExecutionType` - Enum for immediate vs scheduled execution types
+  - `WorkflowTargetType` - Enum for subscriber vs segment targeting
+
+- **Technical Implementation**:
+  - New `WorkflowService` class for API integration and request handling
+  - Comprehensive input validation including UUID format verification
+  - Proper error handling with `PushFireApiException` integration
+  - Full logging support for debugging and monitoring
+
+- **Developer Experience**:
+  - Updated example application with complete workflow execution demo UI
+  - Comprehensive documentation with code examples for all workflow methods
+  - Type-safe API with proper Dart null safety support
 
 ## 0.0.9
 

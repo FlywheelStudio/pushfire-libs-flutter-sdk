@@ -88,6 +88,7 @@ void main() async {
       baseUrl: 'https://api.pushfire.com', // Optional: defaults to production
       enableLogging: true, // Optional: enable for debugging
       timeoutSeconds: 30, // Optional: request timeout
+      authProvider: AuthProvider.firebase, // Optional: authentication provider
     ),
   );
   
@@ -95,7 +96,70 @@ void main() async {
 }
 ```
 
-### 2. Subscriber Management
+### 2. Authentication Provider Integration
+
+The PushFire SDK supports automatic subscriber management through authentication providers. When configured, the SDK automatically handles subscriber login/logout based on the user's authentication state.
+
+#### Supported Authentication Providers
+
+- **Firebase Authentication** (`AuthProvider.firebase`)
+- **Supabase Authentication** (`AuthProvider.supabase`)  
+- **None** (`AuthProvider.none`) - Default, manual subscriber management
+
+#### Firebase Authentication Integration
+
+```dart
+await PushFireSDK.initialize(
+  PushFireConfig(
+    apiKey: 'your-api-key-here',
+    authProvider: AuthProvider.firebase,
+  ),
+);
+```
+
+When Firebase Authentication is configured:
+- The SDK automatically listens for `authStateChanges()` from `FirebaseAuth.instance`
+- When a user signs in, the SDK automatically calls `loginSubscriber()` with:
+  - `externalId`: User's UID
+  - `email`: User's email (if available)
+  - `name`: User's display name or 'Guest' if not available
+  - `phone`: User's phone number (if available)
+- When a user signs out, the SDK automatically calls `logoutSubscriber()`
+
+#### Supabase Authentication Integration
+
+```dart
+await PushFireSDK.initialize(
+  PushFireConfig(
+    apiKey: 'your-api-key-here',
+    authProvider: AuthProvider.supabase,
+  ),
+);
+```
+
+When Supabase Authentication is configured:
+- The SDK automatically listens for `onAuthStateChange` events from `Supabase.instance.client.auth`
+- When a user signs in (`AuthChangeEvent.signedIn`), the SDK automatically calls `loginSubscriber()` with:
+  - `externalId`: User's ID
+  - `email`: User's email (if available)
+  - `name`: User's full_name from metadata or 'Guest' if not available
+  - `phone`: User's phone number (if available)
+- When a user signs out (`AuthChangeEvent.signedOut`), the SDK automatically calls `logoutSubscriber()`
+
+#### Manual Subscriber Management
+
+```dart
+await PushFireSDK.initialize(
+  PushFireConfig(
+    apiKey: 'your-api-key-here',
+    authProvider: AuthProvider.none, // Default
+  ),
+);
+```
+
+When no authentication provider is configured, you must manually manage subscribers using the SDK methods.
+
+### 3. Subscriber Management
 
 #### Login/Register a Subscriber
 
@@ -258,13 +322,13 @@ try {
 
 ```dart
 // Schedule workflow for future execution
-final scheduleTime = DateTime.now().add(Duration(hours: 2));
+final scheduledFor = DateTime.now().add(Duration(hours: 2));
 
 try {
   await PushFireSDK.instance.createScheduledWorkflowForSubscribers(
     workflowId: 'reminder-series',
     subscriberIds: ['sub1', 'sub2'],
-    scheduleTime: scheduleTime,
+    scheduledFor: scheduledFor,
   );
   print('Workflow scheduled for subscribers');
 } catch (e) {
@@ -275,7 +339,7 @@ try {
   await PushFireSDK.instance.createScheduledWorkflowForSegments(
     workflowId: 'weekly-digest',
     segmentIds: ['newsletter-subscribers'],
-    scheduleTime: scheduleTime,
+    scheduledFor: scheduledFor,
   );
   print('Workflow scheduled for segments');
 } catch (e) {
@@ -289,18 +353,12 @@ try {
 // Create custom workflow execution request
 final request = WorkflowExecutionRequest(
   workflowId: 'custom-workflow',
-  executionType: WorkflowExecutionType.scheduled,
-  scheduleTime: DateTime.now().add(Duration(days: 1)),
-  targets: [
-    WorkflowTarget(
-      type: WorkflowTargetType.subscriber,
-      ids: ['sub1', 'sub2'],
-    ),
-    WorkflowTarget(
-      type: WorkflowTargetType.segment,
-      ids: ['vip-users'],
-    ),
-  ],
+  type: WorkflowExecutionType.scheduled,
+  scheduledFor: DateTime.now().add(Duration(days: 1)),
+  target: WorkflowTarget(
+    type: WorkflowTargetType.subscribers,
+    values: ['sub1', 'sub2'],
+  ),
 );
 
 try {
@@ -443,6 +501,7 @@ if (PushFireSDK.isInitialized) {
 | `baseUrl` | String | No | `https://jojnoebcqoqjlshwzmjm.supabase.co/functions/v1/` | API base URL |
 | `enableLogging` | bool | No | `false` | Enable debug logging |
 | `timeoutSeconds` | int | No | `30` | Request timeout in seconds |
+| `authProvider` | AuthProvider | No | `AuthProvider.none` | Authentication provider for automatic subscriber management |
 
 ## Error Types
 

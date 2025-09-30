@@ -1,6 +1,8 @@
 import 'dart:async';
+import 'package:firebase_auth/firebase_auth.dart' show FirebaseAuth, User;
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:supabase_flutter/supabase_flutter.dart' as sp;
 import 'api/pushfire_api_client.dart';
 import 'config/pushfire_config.dart';
 import 'exceptions/pushfire_exceptions.dart';
@@ -104,6 +106,46 @@ class PushFireSDKImpl {
 
     // Set up FCM token refresh listener
     _setupFcmTokenRefreshListener();
+
+    // listen for auth events if using any auth provider
+    switch(config.authProvider) {
+      case AuthProvider.supabase:
+        PushFireLogger.info('Listening for auth state changes');
+        // Listen for auth state changes
+        sp.Supabase.instance.client.auth.onAuthStateChange.listen((data) {
+          final event = data.event;
+          final session = data.session;
+          // Handle auth state changes if needed
+          if (event == sp.AuthChangeEvent.signedIn && session != null) {
+            final user = session.user;
+            final email = user.email == null || user.email == '' ? null: user.email;
+            final phone = user.phone == null || user.phone == '' ? null: user.phone;
+            final name = user.userMetadata?['full_name'] == null || user.userMetadata?['full_name'] == '' ? null: user.userMetadata?['full_name'];
+            loginSubscriber(externalId: user.id, email: email,phone: phone, name: name ?? 'Guest');
+          } else if (event == sp.AuthChangeEvent.signedOut) {
+            logoutSubscriber();
+          }
+        });
+        break;
+      case AuthProvider.firebase:
+        PushFireLogger.info('Listening for auth state changes');
+        FirebaseAuth.instance.authStateChanges().listen((User? user) {
+          if (user != null){
+            PushFireLogger.info('User signed in: ${user.uid}, ');
+            final name = user.displayName == null || user.displayName == '' ? null: user.displayName;
+            final email = user.email == null || user.email == '' ? null: user.email;
+            final phone = user.phoneNumber == null || user.phoneNumber == '' ? null: user.phoneNumber;
+            loginSubscriber(externalId: user.uid, email: email, name: name ?? 'Guest');
+          }
+          else {
+            PushFireLogger.info('User signed out');
+            logoutSubscriber();
+          }
+        });
+        break;
+      default:
+        break;
+    }
 
     PushFireLogger.info('SDK services initialized');
   }
