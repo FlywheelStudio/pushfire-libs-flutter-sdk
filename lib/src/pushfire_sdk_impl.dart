@@ -96,7 +96,7 @@ class PushFireSDKImpl {
 
     // Initialize services
     _apiClient = PushFireApiClient(config);
-    _deviceService = DeviceService(_apiClient);
+    _deviceService = DeviceService(_apiClient, config);
     _subscriberService = SubscriberService(_apiClient, _deviceService);
     _tagService = TagService(_apiClient, _subscriberService);
     _workflowService = WorkflowService(_apiClient);
@@ -135,7 +135,7 @@ class PushFireSDKImpl {
             final name = user.displayName == null || user.displayName == '' ? null: user.displayName;
             final email = user.email == null || user.email == '' ? null: user.email;
             final phone = user.phoneNumber == null || user.phoneNumber == '' ? null: user.phoneNumber;
-            loginSubscriber(externalId: user.uid, email: email, name: name ?? 'Guest');
+            loginSubscriber(externalId: user.uid, email: email, name: name ?? 'Guest',phone: phone);
           }
           else {
             PushFireLogger.info('User signed out');
@@ -390,6 +390,12 @@ class PushFireSDKImpl {
   PushFireConfig get config {
     _ensureInitialized();
     return _config;
+  }
+
+  /// Manually request notification permissions
+  Future<bool> requestNotificationPermission() async {
+    _ensureInitialized();
+    return await _deviceService.requestNotificationPermission();
   }
 
   /// Check if SDK is initialized

@@ -12,7 +12,11 @@ class PushFireConfig {
   /// Timeout for HTTP requests in seconds
   final int timeoutSeconds;
 
+  /// Authentication provider for automatic subscriber management
   final AuthProvider authProvider;
+
+  /// Automatically request notification permission during SDK initialization
+  final bool requestNotificationPermission;
 
   const PushFireConfig({
     required this.apiKey,
@@ -20,6 +24,7 @@ class PushFireConfig {
     this.enableLogging = false,
     this.timeoutSeconds = 30,
     this.authProvider = AuthProvider.none,
+    this.requestNotificationPermission = true,
   });
 
   /// Create a copy of this config with updated values
@@ -29,6 +34,7 @@ class PushFireConfig {
     bool? enableLogging,
     int? timeoutSeconds,
     AuthProvider? authProvider,
+    bool? requestNotificationPermission,
   }) {
     return PushFireConfig(
       apiKey: apiKey ?? this.apiKey,
@@ -36,6 +42,7 @@ class PushFireConfig {
       enableLogging: enableLogging ?? this.enableLogging,
       timeoutSeconds: timeoutSeconds ?? this.timeoutSeconds,
       authProvider: authProvider ?? this.authProvider,
+      requestNotificationPermission: requestNotificationPermission ?? this.requestNotificationPermission,
     );
   }
 

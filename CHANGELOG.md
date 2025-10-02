@@ -5,8 +5,49 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.3]
+
+### Added
+- **Notification Permission Control**: Flexible notification permission handling for better user experience
+  - `requestNotificationPermission` parameter in `PushFireConfig` to control automatic permission requests
+  - `requestNotificationPermission()` method for manual permission requests at appropriate times
+  - Platform-specific permission handling for iOS, Android, and Web
+
+### Enhanced
+- **Permission Management**:
+  - Automatic permission request during SDK initialization (default behavior)
+  - Option to disable automatic requests for custom UX flows
+  - Manual permission request method with boolean return value
+  - Automatic device re-registration when permissions are granted manually
+
+- **Platform-Specific Behavior**:
+  - iOS: Proper Firebase Messaging permission settings for alerts, badges, and sounds
+  - Android: Runtime permission handling for Android 13+ (API level 33+)
+  - Web: Browser notification permission requests through Firebase Messaging
+
+- **Developer Experience**:
+  - Comprehensive logging for permission request outcomes
+  - Graceful handling of permission denial scenarios
+  - Device registration continues even without notification permissions
+  - Support for manual permission grants through device settings
+
+### Technical Implementation
+- **Configuration Options**: Added `requestNotificationPermission` to `PushFireConfig` class
+- **Service Enhancement**: Updated `DeviceService` to handle conditional permission requests
+- **SDK Interface**: Added public `requestNotificationPermission()` method to main SDK interface
+- **Error Handling**: Robust permission status checking and logging
+
+### Documentation
+- **README Updates**: Complete notification permission configuration guide
+- **Code Examples**: Detailed examples for automatic and manual permission strategies
+- **Best Practices**: Guidelines for optimal permission request timing and user experience
+
 ## [0.1.2]
-  - Bumped version to 0.1.2
+
+### Added
+- **Configuration Options**: Enhanced SDK configuration with additional parameters
+  - `timeoutSeconds` parameter for API request timeout configuration
+  - `enableLogging` parameter for debug logging control
 
 ## [0.1.1]
 

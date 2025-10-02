@@ -19,6 +19,8 @@ void main() async {
             '370d68b4-9f91-46d3-af64-15247fd783eb', // Replace with your actual API key
         enableLogging: true, // Enable for debugging
         timeoutSeconds: 30,
+        // requestNotificationPermission: true, // Default: automatically request permissions
+        // requestNotificationPermission: false, // Disable automatic requests for manual control
       ),
     );
     print('PushFire SDK initialized successfully');
@@ -524,6 +526,26 @@ class _PushFireExampleState extends State<PushFireExample> {
     }
   }
 
+  Future<void> _requestNotificationPermission() async {
+    try {
+      setState(() {
+        _status = 'Requesting notification permission...';
+      });
+
+      final granted = await PushFireSDK.instance.requestNotificationPermission();
+
+      setState(() {
+        _status = granted 
+            ? 'Notification permission granted successfully'
+            : 'Notification permission denied';
+      });
+    } catch (e) {
+      setState(() {
+        _status = 'Permission request failed: $e';
+      });
+    }
+  }
+
   @override
   void dispose() {
     _deviceSubscription.cancel();
@@ -882,6 +904,40 @@ class _PushFireExampleState extends State<PushFireExample> {
                           ),
                         ),
                       ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
+            SizedBox(height: 16),
+
+            // Notification Permission Card
+            Card(
+              child: Padding(
+                padding: EdgeInsets.all(16.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Notification Permissions',
+                      style: Theme.of(context).textTheme.titleLarge,
+                    ),
+                    SizedBox(height: 8),
+                    Text(
+                      'Test manual notification permission requests. This is useful when you initialize the SDK with requestNotificationPermission: false.',
+                      style: TextStyle(color: Colors.grey[600]),
+                    ),
+                    SizedBox(height: 16),
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        onPressed: _requestNotificationPermission,
+                        child: Text('Request Notification Permission'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.deepPurple,
+                        ),
+                      ),
                     ),
                   ],
                 ),

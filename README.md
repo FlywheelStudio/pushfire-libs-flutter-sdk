@@ -502,6 +502,69 @@ if (PushFireSDK.isInitialized) {
 | `enableLogging` | bool | No | `false` | Enable debug logging |
 | `timeoutSeconds` | int | No | `30` | Request timeout in seconds |
 | `authProvider` | AuthProvider | No | `AuthProvider.none` | Authentication provider for automatic subscriber management |
+| `requestNotificationPermission` | bool | No | `true` | Automatically request notification permissions during SDK initialization |
+
+## Notification Permissions
+
+The PushFire SDK provides flexible notification permission handling to accommodate different app requirements and user experience strategies.
+
+### Automatic Permission Request
+
+By default, the SDK automatically requests notification permissions during initialization:
+
+```dart
+await PushFireSDK.initialize(
+  config: PushFireConfig(
+    apiKey: 'your-api-key',
+    requestNotificationPermission: true, // Default behavior
+  ),
+);
+```
+
+### Manual Permission Request
+
+For apps that prefer to request permissions at a more appropriate time in the user journey:
+
+```dart
+// Initialize without automatic permission request
+await PushFireSDK.initialize(
+  config: PushFireConfig(
+    apiKey: 'your-api-key',
+    requestNotificationPermission: false,
+  ),
+);
+
+// Later, when appropriate for your UX
+bool permissionGranted = await PushFireSDK.requestNotificationPermission();
+if (permissionGranted) {
+  print('Notification permission granted');
+} else {
+  print('Notification permission denied');
+}
+```
+
+### Platform-Specific Behavior
+
+The SDK handles platform-specific permission requirements:
+
+- **iOS**: Uses Firebase Messaging's permission system with appropriate settings for alerts, badges, and sounds
+- **Android**: Handles runtime permissions for Android 13+ (API level 33+) and gracefully handles older versions
+- **Web**: Requests browser notification permissions through Firebase Messaging
+
+### Best Practices for Permissions
+
+1. **Context Matters**: Request permissions when users understand the value of notifications
+2. **Graceful Degradation**: Your app should work even if permissions are denied
+3. **Re-request Strategy**: Use `requestNotificationPermission()` to re-request if initially denied
+4. **User Education**: Explain the benefits before requesting permissions
+
+### Permission Status Handling
+
+The SDK automatically:
+- Logs permission request outcomes for debugging
+- Continues device registration even if permissions are denied
+- Supports manual permission grants through device settings
+- Re-registers the device when permissions are granted via manual request
 
 ## Error Types
 

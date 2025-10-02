@@ -305,6 +305,18 @@ class PushFireSDK {
   /// Get SDK configuration
   PushFireConfig get config => PushFireSDKImpl.instance.config;
 
+  /// Manually request notification permissions
+  ///
+  /// This method allows you to request notification permissions at any time,
+  /// regardless of the `requestNotificationPermission` configuration setting.
+  /// Useful for implementing custom permission request flows.
+  ///
+  /// Returns true if permission was granted, false otherwise
+  /// Throws [PushFireDeviceException] if the request fails
+  Future<bool> requestNotificationPermission() async {
+    return await PushFireSDKImpl.instance.requestNotificationPermission();
+  }
+
   // Event streams
 
   /// Stream of device registration events
