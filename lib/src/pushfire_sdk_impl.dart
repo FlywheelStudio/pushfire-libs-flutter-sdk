@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:flutter/widgets.dart';
 import 'package:firebase_auth/firebase_auth.dart' show FirebaseAuth, User;
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
@@ -17,7 +18,7 @@ import 'services/workflow_service.dart';
 import 'utils/logger.dart';
 
 /// Main implementation of the PushFire SDK
-class PushFireSDKImpl {
+class PushFireSDKImpl with WidgetsBindingObserver {
   static PushFireSDKImpl? _instance;
   static bool _isInitialized = false;
 
@@ -37,6 +38,14 @@ class PushFireSDKImpl {
       StreamController<Subscriber>.broadcast();
   final _subscriberLoggedOutController = StreamController<void>.broadcast();
   final _fcmTokenRefreshController = StreamController<String>.broadcast();
+
+  // Stream subscriptions that need to be cancelled on dispose
+  StreamSubscription<String>? _fcmTokenRefreshSubscription;
+  StreamSubscription<sp.AuthState>? _supabaseAuthSubscription;
+  StreamSubscription<User?>? _firebaseAuthSubscription;
+
+  // Flag to prevent overlapping permission checks
+  bool _isCheckingPermission = false;
 
   PushFireSDKImpl._();
 
@@ -107,21 +116,34 @@ class PushFireSDKImpl {
     // Set up FCM token refresh listener
     _setupFcmTokenRefreshListener();
 
+    // Set up app lifecycle observer for permission status monitoring
+    _setupAppLifecycleObserver();
+
     // listen for auth events if using any auth provider
-    switch(config.authProvider) {
+    switch (config.authProvider) {
       case AuthProvider.supabase:
         PushFireLogger.info('Listening for auth state changes');
         // Listen for auth state changes
-        sp.Supabase.instance.client.auth.onAuthStateChange.listen((data) {
+        _supabaseAuthSubscription =
+            sp.Supabase.instance.client.auth.onAuthStateChange.listen((data) {
           final event = data.event;
           final session = data.session;
           // Handle auth state changes if needed
           if (event == sp.AuthChangeEvent.signedIn && session != null) {
             final user = session.user;
-            final email = user.email == null || user.email == '' ? null: user.email;
-            final phone = user.phone == null || user.phone == '' ? null: user.phone;
-            final name = user.userMetadata?['full_name'] == null || user.userMetadata?['full_name'] == '' ? null: user.userMetadata?['full_name'];
-            loginSubscriber(externalId: user.id, email: email,phone: phone, name: name ?? 'Guest');
+            final email =
+                user.email == null || user.email == '' ? null : user.email;
+            final phone =
+                user.phone == null || user.phone == '' ? null : user.phone;
+            final name = user.userMetadata?['full_name'] == null ||
+                    user.userMetadata?['full_name'] == ''
+                ? null
+                : user.userMetadata?['full_name'];
+            loginSubscriber(
+                externalId: user.id,
+                email: email,
+                phone: phone,
+                name: name ?? 'Guest');
           } else if (event == sp.AuthChangeEvent.signedOut) {
             logoutSubscriber();
           }
@@ -129,15 +151,24 @@ class PushFireSDKImpl {
         break;
       case AuthProvider.firebase:
         PushFireLogger.info('Listening for auth state changes');
-        FirebaseAuth.instance.authStateChanges().listen((User? user) {
-          if (user != null){
+        _firebaseAuthSubscription =
+            FirebaseAuth.instance.authStateChanges().listen((User? user) {
+          if (user != null) {
             PushFireLogger.info('User signed in: ${user.uid}, ');
-            final name = user.displayName == null || user.displayName == '' ? null: user.displayName;
-            final email = user.email == null || user.email == '' ? null: user.email;
-            final phone = user.phoneNumber == null || user.phoneNumber == '' ? null: user.phoneNumber;
-            loginSubscriber(externalId: user.uid, email: email, name: name ?? 'Guest',phone: phone);
-          }
-          else {
+            final name = user.displayName == null || user.displayName == ''
+                ? null
+                : user.displayName;
+            final email =
+                user.email == null || user.email == '' ? null : user.email;
+            final phone = user.phoneNumber == null || user.phoneNumber == ''
+                ? null
+                : user.phoneNumber;
+            loginSubscriber(
+                externalId: user.uid,
+                email: email,
+                name: name ?? 'Guest',
+                phone: phone);
+          } else {
             PushFireLogger.info('User signed out');
             logoutSubscriber();
           }
@@ -165,13 +196,18 @@ class PushFireSDKImpl {
 
   /// Set up FCM token refresh listener
   void _setupFcmTokenRefreshListener() {
-    FirebaseMessaging.instance.onTokenRefresh.listen((newToken) async {
+    _fcmTokenRefreshSubscription =
+        FirebaseMessaging.instance.onTokenRefresh.listen((newToken) async {
       try {
         PushFireLogger.info('FCM token refreshed');
         PushFireLogger.logFcmToken(newToken);
 
+        // Check for permission status changes before re-registering
+        await _deviceService.checkAndHandlePermissionStatusChange();
+
         // Re-register device with new token
         _currentDevice = await _deviceService.registerDevice();
+        _deviceRegisteredController.add(_currentDevice!);
         _fcmTokenRefreshController.add(newToken);
 
         PushFireLogger.info('Device updated with new FCM token');
@@ -179,6 +215,60 @@ class PushFireSDKImpl {
         PushFireLogger.error('Failed to update device with new FCM token', e);
       }
     });
+  }
+
+  /// Set up app lifecycle observer to detect permission changes
+  void _setupAppLifecycleObserver() {
+    try {
+      WidgetsBinding.instance.addObserver(this);
+      PushFireLogger.info(
+          'App lifecycle observer set up for permission monitoring');
+    } catch (e) {
+      // If WidgetsBinding is not available (e.g., in tests), continue without it
+      PushFireLogger.warning('Could not set up app lifecycle observer: $e');
+    }
+  }
+
+  /// Handle app lifecycle changes
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      // Check for permission status changes when app comes to foreground
+      // Use unawaited since this is a synchronous callback, but guard against overlapping calls
+      unawaited(_checkPermissionStatusOnResume());
+    }
+  }
+
+  /// Check permission status when app resumes
+  /// This method is safe to call multiple times - it guards against overlapping executions
+  Future<void> _checkPermissionStatusOnResume() async {
+    // Prevent overlapping calls - if a check is already in progress, skip this one
+    if (_isCheckingPermission) {
+      PushFireLogger.info(
+          'Permission check already in progress - skipping duplicate call');
+      return;
+    }
+
+    _isCheckingPermission = true;
+    try {
+      PushFireLogger.info(
+          'App resumed - checking notification permission status');
+      final updatedDevice =
+          await _deviceService.checkAndHandlePermissionStatusChange();
+
+      if (updatedDevice != null) {
+        // Device was already re-registered by checkAndHandlePermissionStatusChange
+        // Just update the current device reference and emit event
+        _currentDevice = updatedDevice;
+        _deviceRegisteredController.add(updatedDevice);
+        PushFireLogger.info('Device updated after permission status change');
+      }
+    } catch (e) {
+      PushFireLogger.error(
+          'Failed to check permission status on app resume', e);
+    } finally {
+      _isCheckingPermission = false;
+    }
   }
 
   /// Login subscriber
@@ -448,6 +538,24 @@ class PushFireSDKImpl {
     if (!_isInitialized) return;
 
     PushFireLogger.info('Disposing SDK');
+
+    // Remove app lifecycle observer
+    try {
+      WidgetsBinding.instance.removeObserver(this);
+    } catch (e) {
+      // Ignore if observer wasn't added or WidgetsBinding is not available
+    }
+
+    // Reset flags
+    _isCheckingPermission = false;
+
+    // Cancel stream subscriptions to prevent memory leaks
+    _fcmTokenRefreshSubscription?.cancel();
+    _fcmTokenRefreshSubscription = null;
+    _supabaseAuthSubscription?.cancel();
+    _supabaseAuthSubscription = null;
+    _firebaseAuthSubscription?.cancel();
+    _firebaseAuthSubscription = null;
 
     _apiClient.dispose();
     _deviceRegisteredController.close();
