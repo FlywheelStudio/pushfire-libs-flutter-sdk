@@ -5,6 +5,43 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.4]
+
+### Fixed
+- **Memory Leaks**: Fixed stream subscription memory leaks by properly storing and cancelling all subscriptions
+  - FCM token refresh listener now properly cancelled on dispose
+  - Firebase auth state listener now properly cancelled on dispose
+  - Supabase auth state listener now properly cancelled on dispose
+- **Race Conditions**: Fixed race condition in app lifecycle permission checking
+  - Added guard flag to prevent overlapping permission checks
+  - Proper async handling with `unawaited()` for fire-and-forget futures
+- **Double Registration**: Fixed redundant device registration when permission status changes
+  - `checkAndHandlePermissionStatusChange()` now returns the registered Device directly
+  - Eliminates unnecessary API calls when permission changes are detected
+- **Permission Status Inconsistency**: Fixed inconsistency between permission checking and requesting
+  - `_isPushNotificationEnabled()` now correctly recognizes both `authorized` and `provisional` status
+  - Ensures iOS provisional permission is properly registered as enabled
+
+### Enhanced
+- **Android 13+ Permission Handling**: Improved Android 13+ (API 33+) notification permission support
+  - Added `permission_handler` package for accurate permission status checking
+  - Proper handling of `POST_NOTIFICATIONS` runtime permission
+  - Better detection of permission status on first launch
+- **Automatic Permission Detection**: Added automatic detection of permission status changes
+  - Monitors app lifecycle to detect when permissions are enabled after being denied
+  - Automatically re-registers device when permission status changes from denied to authorized
+  - Checks permission status on app resume and FCM token refresh
+- **Permission Status Tracking**: Added persistent tracking of permission status
+  - Stores last known permission status in SharedPreferences
+  - Detects changes from denied to authorized state
+  - Automatically updates device registration when permissions are enabled
+
+### Technical Improvements
+- **Resource Management**: Proper cleanup of all stream subscriptions and observers
+- **Error Handling**: Improved error handling in permission checking flows
+- **Code Quality**: Fixed analyzer warnings and followed Dart best practices
+- **Platform Support**: Enhanced Android 13+ support with dedicated permission handling
+
 ## [0.1.3]
 
 ### Added
