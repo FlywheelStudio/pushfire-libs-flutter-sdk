@@ -72,9 +72,9 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
 
-      # Run analysis
+      # Run analysis (exclude example directory which requires firebase_options.dart)
       - name: Analyze
-        run: flutter analyze --no-fatal-infos --no-fatal-warnings
+        run: flutter analyze --no-fatal-infos --no-fatal-warnings lib/
 
       # Run tests
       - name: Run tests
