@@ -74,7 +74,7 @@ jobs:
 
       # Run analysis (exclude example directory which requires firebase_options.dart)
       - name: Analyze
-        run: flutter analyze --no-fatal-infos --no-fatal-warnings lib/
+        run: flutter analyze --no-fatal-infos --no-fatal-warnings
 
       # Run tests
       - name: Run tests
