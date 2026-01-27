@@ -55,9 +55,8 @@ class WorkflowTarget {
   factory WorkflowTarget.fromJson(Map<String, dynamic> json) {
     return WorkflowTarget(
       type: WorkflowTargetType.fromString(json['type'] as String),
-      values: (json['values'] as List<dynamic>)
-          .map((e) => e as String)
-          .toList(),
+      values:
+          (json['values'] as List<dynamic>).map((e) => e as String).toList(),
     );
   }
 

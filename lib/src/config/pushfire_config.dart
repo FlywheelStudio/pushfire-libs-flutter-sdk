@@ -42,7 +42,8 @@ class PushFireConfig {
       enableLogging: enableLogging ?? this.enableLogging,
       timeoutSeconds: timeoutSeconds ?? this.timeoutSeconds,
       authProvider: authProvider ?? this.authProvider,
-      requestNotificationPermission: requestNotificationPermission ?? this.requestNotificationPermission,
+      requestNotificationPermission:
+          requestNotificationPermission ?? this.requestNotificationPermission,
     );
   }
 
@@ -52,9 +53,4 @@ class PushFireConfig {
   }
 }
 
-
-enum AuthProvider {
-  supabase,
-  firebase,
-  none
-}
+enum AuthProvider { supabase, firebase, none }

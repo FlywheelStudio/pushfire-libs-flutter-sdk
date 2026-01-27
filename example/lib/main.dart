@@ -57,8 +57,9 @@ class _PushFireExampleState extends State<PushFireExample> {
   final TextEditingController _phoneController = TextEditingController();
   final TextEditingController _tagIdController = TextEditingController();
   final TextEditingController _tagValueController = TextEditingController();
-   final TextEditingController _workflowIdController = TextEditingController();
-  final TextEditingController _subscriberIdsController = TextEditingController();
+  final TextEditingController _workflowIdController = TextEditingController();
+  final TextEditingController _subscriberIdsController =
+      TextEditingController();
   final TextEditingController _segmentIdsController = TextEditingController();
   DateTime? _selectedScheduleTime;
 
@@ -357,7 +358,8 @@ class _PushFireExampleState extends State<PushFireExample> {
   }
 
   Future<void> _createImmediateWorkflowForSubscribers() async {
-    if (_workflowIdController.text.isEmpty || _subscriberIdsController.text.isEmpty) {
+    if (_workflowIdController.text.isEmpty ||
+        _subscriberIdsController.text.isEmpty) {
       setState(() {
         _status = 'Please enter workflow ID and subscriber IDs';
       });
@@ -375,13 +377,15 @@ class _PushFireExampleState extends State<PushFireExample> {
           .where((id) => id.isNotEmpty)
           .toList();
 
-      final result = await PushFireSDK.instance.createImmediateWorkflowForSubscribers(
+      final result =
+          await PushFireSDK.instance.createImmediateWorkflowForSubscribers(
         workflowId: _workflowIdController.text,
         subscriberIds: subscriberIds,
       );
 
       setState(() {
-        _status = 'Workflow created successfully: ${result['id'] ?? 'Unknown ID'}';
+        _status =
+            'Workflow created successfully: ${result['id'] ?? 'Unknown ID'}';
       });
     } catch (e) {
       setState(() {
@@ -391,7 +395,8 @@ class _PushFireExampleState extends State<PushFireExample> {
   }
 
   Future<void> _createImmediateWorkflowForSegments() async {
-    if (_workflowIdController.text.isEmpty || _segmentIdsController.text.isEmpty) {
+    if (_workflowIdController.text.isEmpty ||
+        _segmentIdsController.text.isEmpty) {
       setState(() {
         _status = 'Please enter workflow ID and segment IDs';
       });
@@ -409,13 +414,15 @@ class _PushFireExampleState extends State<PushFireExample> {
           .where((id) => id.isNotEmpty)
           .toList();
 
-      final result = await PushFireSDK.instance.createImmediateWorkflowForSegments(
+      final result =
+          await PushFireSDK.instance.createImmediateWorkflowForSegments(
         workflowId: _workflowIdController.text,
         segmentIds: segmentIds,
       );
 
       setState(() {
-        _status = 'Workflow created successfully: ${result['id'] ?? 'Unknown ID'}';
+        _status =
+            'Workflow created successfully: ${result['id'] ?? 'Unknown ID'}';
       });
     } catch (e) {
       setState(() {
@@ -425,11 +432,12 @@ class _PushFireExampleState extends State<PushFireExample> {
   }
 
   Future<void> _createScheduledWorkflowForSubscribers() async {
-    if (_workflowIdController.text.isEmpty || 
-        _subscriberIdsController.text.isEmpty || 
+    if (_workflowIdController.text.isEmpty ||
+        _subscriberIdsController.text.isEmpty ||
         _selectedScheduleTime == null) {
       setState(() {
-        _status = 'Please enter workflow ID, subscriber IDs, and select schedule time';
+        _status =
+            'Please enter workflow ID, subscriber IDs, and select schedule time';
       });
       return;
     }
@@ -445,14 +453,16 @@ class _PushFireExampleState extends State<PushFireExample> {
           .where((id) => id.isNotEmpty)
           .toList();
 
-      final result = await PushFireSDK.instance.createScheduledWorkflowForSubscribers(
+      final result =
+          await PushFireSDK.instance.createScheduledWorkflowForSubscribers(
         workflowId: _workflowIdController.text,
         subscriberIds: subscriberIds,
         scheduledFor: _selectedScheduleTime!,
       );
 
       setState(() {
-        _status = 'Scheduled workflow created successfully: ${result['id'] ?? 'Unknown ID'}';
+        _status =
+            'Scheduled workflow created successfully: ${result['id'] ?? 'Unknown ID'}';
       });
     } catch (e) {
       setState(() {
@@ -462,11 +472,12 @@ class _PushFireExampleState extends State<PushFireExample> {
   }
 
   Future<void> _createScheduledWorkflowForSegments() async {
-    if (_workflowIdController.text.isEmpty || 
-        _segmentIdsController.text.isEmpty || 
+    if (_workflowIdController.text.isEmpty ||
+        _segmentIdsController.text.isEmpty ||
         _selectedScheduleTime == null) {
       setState(() {
-        _status = 'Please enter workflow ID, segment IDs, and select schedule time';
+        _status =
+            'Please enter workflow ID, segment IDs, and select schedule time';
       });
       return;
     }
@@ -482,14 +493,16 @@ class _PushFireExampleState extends State<PushFireExample> {
           .where((id) => id.isNotEmpty)
           .toList();
 
-      final result = await PushFireSDK.instance.createScheduledWorkflowForSegments(
+      final result =
+          await PushFireSDK.instance.createScheduledWorkflowForSegments(
         workflowId: _workflowIdController.text,
         segmentIds: segmentIds,
         scheduledFor: _selectedScheduleTime!,
       );
 
       setState(() {
-        _status = 'Scheduled workflow created successfully: ${result['id'] ?? 'Unknown ID'}';
+        _status =
+            'Scheduled workflow created successfully: ${result['id'] ?? 'Unknown ID'}';
       });
     } catch (e) {
       setState(() {
@@ -509,7 +522,8 @@ class _PushFireExampleState extends State<PushFireExample> {
     if (date != null) {
       final time = await showTimePicker(
         context: context,
-        initialTime: TimeOfDay.fromDateTime(DateTime.now().add(Duration(hours: 1))),
+        initialTime:
+            TimeOfDay.fromDateTime(DateTime.now().add(Duration(hours: 1))),
       );
 
       if (time != null) {
@@ -532,10 +546,11 @@ class _PushFireExampleState extends State<PushFireExample> {
         _status = 'Requesting notification permission...';
       });
 
-      final granted = await PushFireSDK.instance.requestNotificationPermission();
+      final granted =
+          await PushFireSDK.instance.requestNotificationPermission();
 
       setState(() {
-        _status = granted 
+        _status = granted
             ? 'Notification permission granted successfully'
             : 'Notification permission denied';
       });
