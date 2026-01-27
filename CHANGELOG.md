@@ -5,6 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.5]
+
+### Added
+- **GitHub Actions Workflows**: Automated CI/CD pipeline for testing and publishing
+  - CI workflow for continuous integration on pushes and PRs
+  - Release workflow that automatically publishes to pub.dev when tags are pushed
+  - Automatic version management from git tags
+  - GitHub Releases creation with release notes
+
+### Technical Implementation
+- **Workflow Automation**: 
+  - Automated testing, analysis, and dry-run verification
+  - OIDC-based authentication for pub.dev publishing
+  - Version extraction and file updates from git tags
+  - GitHub Releases with installation instructions
+
 ## [0.1.4]
 
 ### Fixed
