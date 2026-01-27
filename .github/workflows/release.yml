@@ -80,12 +80,11 @@ jobs:
       - name: Run tests
         run: flutter test
 
-      # Regenerate plugin files to ensure clean state
-      - name: Regenerate plugin files
+      # Regenerate example plugin files to ensure clean state
+      - name: Regenerate example plugin files
         run: |
           cd example
           flutter pub get
-          flutter pub run build_runner build --delete-conflicting-outputs || true
         continue-on-error: true
 
       # Dry run to verify package is ready
