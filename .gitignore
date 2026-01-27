@@ -76,6 +76,12 @@ app.*.map.json
 # macOS
 **/macos/Flutter/GeneratedPluginRegistrant.swift
 
+# Windows/Linux generated files
+**/windows/flutter/generated_plugin_registrant.*
+**/windows/flutter/generated_plugins.cmake
+**/linux/flutter/generated_plugin_registrant.*
+**/linux/flutter/generated_plugins.cmake
+
 # Coverage
 coverage/
 
