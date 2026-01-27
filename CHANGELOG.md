@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.6]
+
+### Fixed
+- **CI/CD Pipeline**: Fixed release workflow analysis errors
+  - Excluded example directory from analysis to prevent firebase_options.dart errors
+  - Removed generated plugin files from git tracking
+  - Updated workflows to regenerate plugin files before publishing
+
+### Technical Improvements
+- **Git Configuration**: 
+  - Added generated plugin files to .gitignore
+  - Cleaned up tracked generated files from repository
+  - Improved workflow reliability for automated publishing
+
 ## [0.1.5]
 
 ### Added
