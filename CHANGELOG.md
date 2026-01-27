@@ -21,6 +21,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Permission Status Inconsistency**: Fixed inconsistency between permission checking and requesting
   - `_isPushNotificationEnabled()` now correctly recognizes both `authorized` and `provisional` status
   - Ensures iOS provisional permission is properly registered as enabled
+- **Dependency Conflicts**: Fixed `permission_handler` version constraint to support both 11.x and 12.x
+  - Updated constraint from `^11.3.1` to `>=11.3.1 <13.0.0`
+  - Resolves conflicts with packages requiring `permission_handler` 12.x
 
 ### Enhanced
 - **Android 13+ Permission Handling**: Improved Android 13+ (API 33+) notification permission support
