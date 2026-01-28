@@ -129,7 +129,10 @@ class PushFireSDKImpl with WidgetsBindingObserver {
           final event = data.event;
           final session = data.session;
           // Handle auth state changes if needed
-          if (event == sp.AuthChangeEvent.signedIn && session != null) {
+          if ((event == sp.AuthChangeEvent.signedIn ||
+                  event == sp.AuthChangeEvent.initialSession ||
+                  event == sp.AuthChangeEvent.userUpdated) &&
+              session != null) {
             final user = session.user;
             final email =
                 user.email == null || user.email == '' ? null : user.email;
