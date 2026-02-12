@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.1.8]
+
+### Added
+- **Subscriber Metadata**: Added `metadata` field (`Map<String, dynamic>?`) to the `Subscriber` model
+  - Supports arbitrary key-value pairs matching the backend `metadata jsonb` column
+  - Wired through the full call chain: `PushFireSDK` → `PushFireSDKImpl` → `SubscriberService` → API
+  - Available in both `loginSubscriber()` and `updateSubscriber()` methods
+
+### Fixed
+- **Local Persistence**: Replaced query-string encoding with JSON encoding for subscriber data storage
+  - Fixes corruption of complex data types (maps, nested values) during local persistence
+  - `storeSubscriberData` and `getCurrentSubscriber` now use `json.encode`/`json.decode`
+- **Equality & HashCode**: Improved `Subscriber` equality and hash code for correctness
+  - Added deep equality comparison supporting nested maps and lists in metadata
+  - Fixed hash code to be order-independent and handle nested structures recursively
+
 ## [0.1.7]
 - Release version 0.1.7
 

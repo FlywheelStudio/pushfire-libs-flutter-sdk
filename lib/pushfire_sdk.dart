@@ -75,6 +75,7 @@ class PushFireSDK {
   /// [name] - Optional subscriber name
   /// [email] - Optional subscriber email
   /// [phone] - Optional subscriber phone number
+  /// [metadata] - Optional metadata as key-value pairs
   ///
   /// Returns the logged in [Subscriber]
   /// Throws [PushFireSubscriberException] if login fails
@@ -83,12 +84,14 @@ class PushFireSDK {
     String? name,
     String? email,
     String? phone,
+    Map<String, dynamic>? metadata,
   }) async {
     return await PushFireSDKImpl.instance.loginSubscriber(
       externalId: externalId,
       name: name,
       email: email,
       phone: phone,
+      metadata: metadata,
     );
   }
 
@@ -97,6 +100,7 @@ class PushFireSDK {
   /// [name] - Updated name
   /// [email] - Updated email
   /// [phone] - Updated phone number
+  /// [metadata] - Updated metadata as key-value pairs
   ///
   /// Returns the updated [Subscriber]
   /// Throws [PushFireSubscriberException] if update fails or no subscriber is logged in
@@ -104,11 +108,13 @@ class PushFireSDK {
     String? name,
     String? email,
     String? phone,
+    Map<String, dynamic>? metadata,
   }) async {
     return await PushFireSDKImpl.instance.updateSubscriber(
       name: name,
       email: email,
       phone: phone,
+      metadata: metadata,
     );
   }
 

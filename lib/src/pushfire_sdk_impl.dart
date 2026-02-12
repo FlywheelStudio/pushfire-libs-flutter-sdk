@@ -280,6 +280,7 @@ class PushFireSDKImpl with WidgetsBindingObserver {
     String? name,
     String? email,
     String? phone,
+    Map<String, dynamic>? metadata,
   }) async {
     _ensureInitialized();
 
@@ -289,6 +290,7 @@ class PushFireSDKImpl with WidgetsBindingObserver {
         name: name,
         email: email,
         phone: phone,
+        metadata: metadata,
       );
 
       _subscriberLoggedInController.add(_currentSubscriber!);
@@ -304,6 +306,7 @@ class PushFireSDKImpl with WidgetsBindingObserver {
     String? name,
     String? email,
     String? phone,
+    Map<String, dynamic>? metadata,
   }) async {
     _ensureInitialized();
 
@@ -320,6 +323,7 @@ class PushFireSDKImpl with WidgetsBindingObserver {
         name: name,
         email: email,
         phone: phone,
+        metadata: metadata,
       );
 
       // Update the local subscriber state (externalId remains unchanged)
@@ -327,6 +331,7 @@ class PushFireSDKImpl with WidgetsBindingObserver {
         name: name,
         email: email,
         phone: phone,
+        metadata: metadata,
       );
 
       // Store updated subscriber data

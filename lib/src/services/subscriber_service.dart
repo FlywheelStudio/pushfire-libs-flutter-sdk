@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:shared_preferences/shared_preferences.dart';
 import '../api/pushfire_api_client.dart';
 import '../exceptions/pushfire_exceptions.dart';
@@ -20,6 +22,7 @@ class SubscriberService {
     String? name,
     String? email,
     String? phone,
+    Map<String, dynamic>? metadata,
   }) async {
     try {
       PushFireLogger.info('Starting subscriber login: $externalId');
@@ -40,6 +43,7 @@ class SubscriberService {
           if (name != null) 'name': name,
           if (email != null) 'email': email,
           if (phone != null) 'phone': phone,
+          if (metadata != null) 'metadata': metadata,
         },
       };
 
@@ -74,6 +78,7 @@ class SubscriberService {
         name: name,
         email: email,
         phone: phone,
+        metadata: metadata,
       );
 
       // Store subscriber data
@@ -100,6 +105,7 @@ class SubscriberService {
     String? name,
     String? email,
     String? phone,
+    Map<String, dynamic>? metadata,
   }) async {
     try {
       PushFireLogger.info('Updating subscriber: $subscriberId');
@@ -112,6 +118,7 @@ class SubscriberService {
           if (name != null) 'name': name,
           if (email != null) 'email': email,
           if (phone != null) 'phone': phone,
+          if (metadata != null) 'metadata': metadata,
         },
       };
 
@@ -185,9 +192,7 @@ class SubscriberService {
         return null;
       }
 
-      final data = Map<String, dynamic>.from(
-        Uri.splitQueryString(subscriberJson),
-      );
+      final data = json.decode(subscriberJson) as Map<String, dynamic>;
 
       return Subscriber.fromJson(data);
     } catch (e) {
@@ -210,15 +215,8 @@ class SubscriberService {
       await prefs.setString(_subscriberIdKey, subscriber.id!);
     }
 
-    // Store as query string for simple serialization
-    final data = subscriber.toJson();
-    final queryString = data.entries
-        .where((entry) => entry.value != null)
-        .map((entry) =>
-            '${entry.key}=${Uri.encodeComponent(entry.value.toString())}')
-        .join('&');
-
-    await prefs.setString(_subscriberDataKey, queryString);
+    // Store as JSON
+    await prefs.setString(_subscriberDataKey, json.encode(subscriber.toJson()));
   }
 
   /// Clear subscriber data from local storage

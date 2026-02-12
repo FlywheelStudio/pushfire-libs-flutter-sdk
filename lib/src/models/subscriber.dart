@@ -18,6 +18,9 @@ class Subscriber {
   /// Subscriber phone number
   final String? phone;
 
+  /// Additional metadata as key-value pairs
+  final Map<String, dynamic>? metadata;
+
   const Subscriber({
     this.id,
     this.deviceId,
@@ -25,6 +28,7 @@ class Subscriber {
     this.name,
     this.email,
     this.phone,
+    this.metadata,
   });
 
   /// Create a Subscriber from JSON
@@ -36,6 +40,9 @@ class Subscriber {
       name: json['name'] as String?,
       email: json['email'] as String?,
       phone: json['phone'] as String?,
+      metadata: json['metadata'] != null
+          ? (json['metadata'] as Map<String, dynamic>)
+          : null,
     );
   }
 
@@ -49,6 +56,7 @@ class Subscriber {
     if (name != null) json['name'] = name;
     if (email != null) json['email'] = email;
     if (phone != null) json['phone'] = phone;
+    if (metadata != null) json['metadata'] = metadata;
 
     return json;
   }
@@ -61,6 +69,7 @@ class Subscriber {
     String? name,
     String? email,
     String? phone,
+    Map<String, dynamic>? metadata,
   }) {
     return Subscriber(
       id: id ?? this.id,
@@ -69,12 +78,13 @@ class Subscriber {
       name: name ?? this.name,
       email: email ?? this.email,
       phone: phone ?? this.phone,
+      metadata: metadata ?? this.metadata,
     );
   }
 
   @override
   String toString() {
-    return 'Subscriber(id: $id, externalId: $externalId, name: $name, email: $email)';
+    return 'Subscriber(id: $id, externalId: $externalId, name: $name, email: $email, metadata: $metadata)';
   }
 
   @override
@@ -86,7 +96,8 @@ class Subscriber {
         other.externalId == externalId &&
         other.name == name &&
         other.email == email &&
-        other.phone == phone;
+        other.phone == phone &&
+        _mapEquals(other.metadata, metadata);
   }
 
   @override
@@ -98,6 +109,46 @@ class Subscriber {
       name,
       email,
       phone,
+      metadata == null ? null : _deepHashCode(metadata!),
     );
+  }
+
+  static int _deepHashCode(dynamic value) {
+    if (value is Map) {
+      final entries = value.entries.toList()
+        ..sort((a, b) => a.key.toString().compareTo(b.key.toString()));
+      return Object.hashAll(
+        entries.map((e) => Object.hash(e.key, _deepHashCode(e.value))),
+      );
+    }
+    if (value is List) {
+      return Object.hashAll(value.map(_deepHashCode));
+    }
+    return value.hashCode;
+  }
+
+  static bool _deepEquals(dynamic a, dynamic b) {
+    if (a == b) return true;
+    if (a is Map && b is Map) {
+      if (a.length != b.length) return false;
+      for (final key in a.keys) {
+        if (!b.containsKey(key) || !_deepEquals(a[key], b[key])) return false;
+      }
+      return true;
+    }
+    if (a is List && b is List) {
+      if (a.length != b.length) return false;
+      for (var i = 0; i < a.length; i++) {
+        if (!_deepEquals(a[i], b[i])) return false;
+      }
+      return true;
+    }
+    return false;
+  }
+
+  static bool _mapEquals(Map<String, dynamic>? a, Map<String, dynamic>? b) {
+    if (a == null && b == null) return true;
+    if (a == null || b == null) return false;
+    return _deepEquals(a, b);
   }
 }

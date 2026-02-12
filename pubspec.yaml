@@ -3,7 +3,7 @@ description: A lightweight push notification tracking SDK for Firebase.
 homepage: https://github.com/FlywheelStudio/pushfire_sdk/blob/main/README.md
 repository: https://github.com/FlywheelStudio/pushfire_sdk
 
-version: 0.1.7
+version: 0.1.8
 
 environment:
   sdk: '>=3.3.1 <4.0.0'
