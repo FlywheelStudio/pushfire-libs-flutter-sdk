@@ -125,7 +125,8 @@ class PushFireSDKImpl with WidgetsBindingObserver {
         PushFireLogger.info('Listening for auth state changes');
         // Listen for auth state changes
         _supabaseAuthSubscription =
-            sp.Supabase.instance.client.auth.onAuthStateChange.listen((data) {
+            sp.Supabase.instance.client.auth.onAuthStateChange
+                .listen((data) async {
           final event = data.event;
           final session = data.session;
           // Handle auth state changes if needed
@@ -134,6 +135,16 @@ class PushFireSDKImpl with WidgetsBindingObserver {
                   event == sp.AuthChangeEvent.userUpdated) &&
               session != null) {
             final user = session.user;
+
+            // Skip if already logged in as this user
+            final current =
+                await _subscriberService.getCurrentSubscriber();
+            if (current != null && current.externalId == user.id) {
+              PushFireLogger.info(
+                  'Subscriber already logged in as ${user.id}, skipping auto-login');
+              return;
+            }
+
             final email =
                 user.email == null || user.email == '' ? null : user.email;
             final phone =
@@ -146,7 +157,7 @@ class PushFireSDKImpl with WidgetsBindingObserver {
                 externalId: user.id,
                 email: email,
                 phone: phone,
-                name: name ?? 'Guest');
+                name: name);
           } else if (event == sp.AuthChangeEvent.signedOut) {
             logoutSubscriber();
           }
@@ -155,9 +166,19 @@ class PushFireSDKImpl with WidgetsBindingObserver {
       case AuthProvider.firebase:
         PushFireLogger.info('Listening for auth state changes');
         _firebaseAuthSubscription =
-            FirebaseAuth.instance.authStateChanges().listen((User? user) {
+            FirebaseAuth.instance.authStateChanges().listen((User? user) async {
           if (user != null) {
-            PushFireLogger.info('User signed in: ${user.uid}, ');
+            PushFireLogger.info('User signed in: ${user.uid}');
+
+            // Skip if already logged in as this user
+            final current =
+                await _subscriberService.getCurrentSubscriber();
+            if (current != null && current.externalId == user.uid) {
+              PushFireLogger.info(
+                  'Subscriber already logged in as ${user.uid}, skipping auto-login');
+              return;
+            }
+
             final name = user.displayName == null || user.displayName == ''
                 ? null
                 : user.displayName;
@@ -169,7 +190,7 @@ class PushFireSDKImpl with WidgetsBindingObserver {
             loginSubscriber(
                 externalId: user.uid,
                 email: email,
-                name: name ?? 'Guest',
+                name: name,
                 phone: phone);
           } else {
             PushFireLogger.info('User signed out');

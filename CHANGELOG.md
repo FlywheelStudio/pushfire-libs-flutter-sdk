@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.1.9]
+
+### Fixed
+- **Auth Auto-Login Race Condition**: Prevented auth state listener from overwriting subscriber data on token refreshes and app restarts
+  - Both Firebase and Supabase listeners now skip `loginSubscriber` if already logged in as the same user
+  - Checks `current.externalId` before calling login to avoid unnecessary API calls
+- **Guest Name Fallback**: Removed hardcoded `'Guest'` fallback for subscriber name
+  - Auth listeners now pass `null` instead of `'Guest'` when `displayName` is unavailable
+  - Prevents overwriting manually-set subscriber names via `updateSubscriber()`
+
 ## [0.1.8]
 
 ### Added
