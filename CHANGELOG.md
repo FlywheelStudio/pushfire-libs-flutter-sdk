@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.1.10]
+
+### Added
+- **Web Platform Guard**: SDK now silently no-ops on web instead of throwing exceptions
+  - `initialize()` logs a warning and returns immediately on web
+  - All instance methods return safe defaults (null, false, empty list/map, empty streams)
+  - `isInitialized` returns `false` on web
+  - `dispose()` is a no-op on web
+  - Apps using PushFire in multi-platform Flutter projects will no longer crash on web
+
 ## [0.1.9]
 
 ### Fixed

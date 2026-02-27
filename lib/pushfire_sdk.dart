@@ -8,6 +8,8 @@ export 'src/models/subscriber_tag.dart';
 export 'src/models/workflow_execution.dart';
 export 'src/exceptions/pushfire_exceptions.dart';
 
+import 'package:flutter/foundation.dart' show kIsWeb;
+
 import 'src/pushfire_sdk_impl.dart';
 import 'src/config/pushfire_config.dart';
 import 'src/models/device.dart';
@@ -20,6 +22,9 @@ import 'src/models/workflow_execution.dart';
 /// This is the primary interface for interacting with the PushFire service.
 /// Initialize the SDK once at app startup and use the singleton instance
 /// for all subsequent operations.
+///
+/// **Web platform:** The SDK does not support web. All methods will silently
+/// no-op and return safe defaults when running in a browser.
 ///
 /// Example usage:
 /// ```dart
@@ -49,6 +54,8 @@ class PushFireSDK {
   /// This must be called once before using any other SDK methods.
   /// Typically called in your app's main() function or during app initialization.
   ///
+  /// On web, this logs a warning and does nothing.
+  ///
   /// [config] - Configuration for the SDK including API key and settings
   ///
   /// Throws [PushFireConfigurationException] if configuration is invalid
@@ -65,27 +72,23 @@ class PushFireSDK {
   }
 
   /// Check if the SDK is initialized
-  static bool get isInitialized => PushFireSDKImpl.isInitialized;
+  ///
+  /// Always returns false on web since the SDK does not support web.
+  static bool get isInitialized => !kIsWeb && PushFireSDKImpl.isInitialized;
 
   // Subscriber methods
 
   /// Login or register a subscriber
   ///
-  /// [externalId] - Your system's user identifier
-  /// [name] - Optional subscriber name
-  /// [email] - Optional subscriber email
-  /// [phone] - Optional subscriber phone number
-  /// [metadata] - Optional metadata as key-value pairs
-  ///
-  /// Returns the logged in [Subscriber]
-  /// Throws [PushFireSubscriberException] if login fails
-  Future<Subscriber> loginSubscriber({
+  /// Returns null on web.
+  Future<Subscriber?> loginSubscriber({
     required String externalId,
     String? name,
     String? email,
     String? phone,
     Map<String, dynamic>? metadata,
   }) async {
+    if (kIsWeb) return null;
     return await PushFireSDKImpl.instance.loginSubscriber(
       externalId: externalId,
       name: name,
@@ -97,19 +100,14 @@ class PushFireSDK {
 
   /// Update current subscriber information
   ///
-  /// [name] - Updated name
-  /// [email] - Updated email
-  /// [phone] - Updated phone number
-  /// [metadata] - Updated metadata as key-value pairs
-  ///
-  /// Returns the updated [Subscriber]
-  /// Throws [PushFireSubscriberException] if update fails or no subscriber is logged in
-  Future<Subscriber> updateSubscriber({
+  /// Returns null on web.
+  Future<Subscriber?> updateSubscriber({
     String? name,
     String? email,
     String? phone,
     Map<String, dynamic>? metadata,
   }) async {
+    if (kIsWeb) return null;
     return await PushFireSDKImpl.instance.updateSubscriber(
       name: name,
       email: email,
@@ -120,20 +118,25 @@ class PushFireSDK {
 
   /// Logout current subscriber
   ///
-  /// Throws [PushFireSubscriberException] if logout fails
+  /// Does nothing on web.
   Future<void> logoutSubscriber() async {
+    if (kIsWeb) return;
     await PushFireSDKImpl.instance.logoutSubscriber();
   }
 
   /// Get current subscriber
   ///
-  /// Returns [Subscriber] if logged in, null otherwise
+  /// Returns null on web.
   Future<Subscriber?> getCurrentSubscriber() async {
+    if (kIsWeb) return null;
     return await PushFireSDKImpl.instance.getCurrentSubscriber();
   }
 
   /// Check if a subscriber is currently logged in
+  ///
+  /// Returns false on web.
   Future<bool> isSubscriberLoggedIn() async {
+    if (kIsWeb) return false;
     return await PushFireSDKImpl.instance.isSubscriberLoggedIn();
   }
 
@@ -141,61 +144,49 @@ class PushFireSDK {
 
   /// Add a tag to the current subscriber
   ///
-  /// [tagId] - Unique identifier for the tag
-  /// [value] - Tag value
-  ///
-  /// Returns the created [SubscriberTag]
-  /// Throws [PushFireTagException] if operation fails or no subscriber is logged in
-  Future<SubscriberTag> addTag(String tagId, String value) async {
+  /// Returns null on web.
+  Future<SubscriberTag?> addTag(String tagId, String value) async {
+    if (kIsWeb) return null;
     return await PushFireSDKImpl.instance.addTag(tagId, value);
   }
 
   /// Update a tag value for the current subscriber
   ///
-  /// [tagId] - Tag identifier to update
-  /// [value] - New tag value
-  ///
-  /// Returns the updated [SubscriberTag]
-  /// Throws [PushFireTagException] if operation fails or no subscriber is logged in
-  Future<SubscriberTag> updateTag(String tagId, String value) async {
+  /// Returns null on web.
+  Future<SubscriberTag?> updateTag(String tagId, String value) async {
+    if (kIsWeb) return null;
     return await PushFireSDKImpl.instance.updateTag(tagId, value);
   }
 
   /// Remove a tag from the current subscriber
   ///
-  /// [tagId] - Tag identifier to remove
-  ///
-  /// Throws [PushFireTagException] if operation fails or no subscriber is logged in
+  /// Does nothing on web.
   Future<void> removeTag(String tagId) async {
+    if (kIsWeb) return;
     await PushFireSDKImpl.instance.removeTag(tagId);
   }
 
   /// Add multiple tags at once
   ///
-  /// [tags] - Map of tag IDs to values
-  ///
-  /// Returns list of successfully created [SubscriberTag]s
-  /// May partially succeed - check logs for individual failures
+  /// Returns empty list on web.
   Future<List<SubscriberTag>> addTags(Map<String, String> tags) async {
+    if (kIsWeb) return [];
     return await PushFireSDKImpl.instance.addTags(tags);
   }
 
   /// Update multiple tags at once
   ///
-  /// [tags] - Map of tag IDs to new values
-  ///
-  /// Returns list of successfully updated [SubscriberTag]s
-  /// May partially succeed - check logs for individual failures
+  /// Returns empty list on web.
   Future<List<SubscriberTag>> updateTags(Map<String, String> tags) async {
+    if (kIsWeb) return [];
     return await PushFireSDKImpl.instance.updateTags(tags);
   }
 
   /// Remove multiple tags at once
   ///
-  /// [tagIds] - List of tag IDs to remove
-  ///
-  /// May partially succeed - check logs for individual failures
+  /// Does nothing on web.
   Future<void> removeTags(List<String> tagIds) async {
+    if (kIsWeb) return;
     await PushFireSDKImpl.instance.removeTags(tagIds);
   }
 
@@ -203,27 +194,22 @@ class PushFireSDK {
 
   /// Create a workflow execution
   ///
-  /// [request] - The workflow execution request containing all necessary data
-  ///
-  /// Returns the API response as a Map
-  /// Throws [PushFireApiException] if the request fails
+  /// Returns empty map on web.
   Future<Map<String, dynamic>> createWorkflowExecution(
     WorkflowExecutionRequest request,
   ) async {
+    if (kIsWeb) return {};
     return await PushFireSDKImpl.instance.createWorkflowExecution(request);
   }
 
   /// Create an immediate workflow execution for subscribers
   ///
-  /// [workflowId] - UUID of the workflow to execute
-  /// [subscriberIds] - List of subscriber UUIDs to target
-  ///
-  /// Returns the API response as a Map
-  /// Throws [PushFireApiException] if the request fails
+  /// Returns empty map on web.
   Future<Map<String, dynamic>> createImmediateWorkflowForSubscribers({
     required String workflowId,
     required List<String> subscriberIds,
   }) async {
+    if (kIsWeb) return {};
     return await PushFireSDKImpl.instance.createImmediateWorkflowForSubscribers(
       workflowId: workflowId,
       subscriberIds: subscriberIds,
@@ -232,15 +218,12 @@ class PushFireSDK {
 
   /// Create an immediate workflow execution for segments
   ///
-  /// [workflowId] - UUID of the workflow to execute
-  /// [segmentIds] - List of segment UUIDs to target
-  ///
-  /// Returns the API response as a Map
-  /// Throws [PushFireApiException] if the request fails
+  /// Returns empty map on web.
   Future<Map<String, dynamic>> createImmediateWorkflowForSegments({
     required String workflowId,
     required List<String> segmentIds,
   }) async {
+    if (kIsWeb) return {};
     return await PushFireSDKImpl.instance.createImmediateWorkflowForSegments(
       workflowId: workflowId,
       segmentIds: segmentIds,
@@ -249,17 +232,13 @@ class PushFireSDK {
 
   /// Create a scheduled workflow execution for subscribers
   ///
-  /// [workflowId] - UUID of the workflow to execute
-  /// [subscriberIds] - List of subscriber UUIDs to target
-  /// [scheduledFor] - DateTime when the workflow should be executed
-  ///
-  /// Returns the API response as a Map
-  /// Throws [PushFireApiException] if the request fails
+  /// Returns empty map on web.
   Future<Map<String, dynamic>> createScheduledWorkflowForSubscribers({
     required String workflowId,
     required List<String> subscriberIds,
     required DateTime scheduledFor,
   }) async {
+    if (kIsWeb) return {};
     return await PushFireSDKImpl.instance.createScheduledWorkflowForSubscribers(
       workflowId: workflowId,
       subscriberIds: subscriberIds,
@@ -269,17 +248,13 @@ class PushFireSDK {
 
   /// Create a scheduled workflow execution for segments
   ///
-  /// [workflowId] - UUID of the workflow to execute
-  /// [segmentIds] - List of segment UUIDs to target
-  /// [scheduledFor] - DateTime when the workflow should be executed
-  ///
-  /// Returns the API response as a Map
-  /// Throws [PushFireApiException] if the request fails
+  /// Returns empty map on web.
   Future<Map<String, dynamic>> createScheduledWorkflowForSegments({
     required String workflowId,
     required List<String> segmentIds,
     required DateTime scheduledFor,
   }) async {
+    if (kIsWeb) return {};
     return await PushFireSDKImpl.instance.createScheduledWorkflowForSegments(
       workflowId: workflowId,
       segmentIds: segmentIds,
@@ -291,35 +266,41 @@ class PushFireSDK {
 
   /// Get current device information
   ///
-  /// Returns [Device] if registered, null otherwise
-  Device? get currentDevice => PushFireSDKImpl.instance.currentDevice;
+  /// Returns null on web.
+  Device? get currentDevice {
+    if (kIsWeb) return null;
+    return PushFireSDKImpl.instance.currentDevice;
+  }
 
   /// Get current device ID
   ///
-  /// Returns device ID string if available, null otherwise
+  /// Returns null on web.
   Future<String?> getDeviceId() async {
+    if (kIsWeb) return null;
     return await PushFireSDKImpl.instance.getDeviceId();
   }
 
   /// Get current subscriber ID
   ///
-  /// Returns subscriber ID string if logged in, null otherwise
+  /// Returns null on web.
   Future<String?> getSubscriberId() async {
+    if (kIsWeb) return null;
     return await PushFireSDKImpl.instance.getSubscriberId();
   }
 
   /// Get SDK configuration
-  PushFireConfig get config => PushFireSDKImpl.instance.config;
+  ///
+  /// Returns null on web.
+  PushFireConfig? get config {
+    if (kIsWeb) return null;
+    return PushFireSDKImpl.instance.config;
+  }
 
   /// Manually request notification permissions
   ///
-  /// This method allows you to request notification permissions at any time,
-  /// regardless of the `requestNotificationPermission` configuration setting.
-  /// Useful for implementing custom permission request flows.
-  ///
-  /// Returns true if permission was granted, false otherwise
-  /// Throws [PushFireDeviceException] if the request fails
+  /// Returns false on web.
   Future<bool> requestNotificationPermission() async {
+    if (kIsWeb) return false;
     return await PushFireSDKImpl.instance.requestNotificationPermission();
   }
 
@@ -327,43 +308,51 @@ class PushFireSDK {
 
   /// Stream of device registration events
   ///
-  /// Emits [Device] when device is registered or updated
-  Stream<Device> get onDeviceRegistered =>
-      PushFireSDKImpl.instance.onDeviceRegistered;
+  /// Returns empty stream on web.
+  Stream<Device> get onDeviceRegistered {
+    if (kIsWeb) return const Stream.empty();
+    return PushFireSDKImpl.instance.onDeviceRegistered;
+  }
 
   /// Stream of subscriber login events
   ///
-  /// Emits [Subscriber] when subscriber logs in
-  Stream<Subscriber> get onSubscriberLoggedIn =>
-      PushFireSDKImpl.instance.onSubscriberLoggedIn;
+  /// Returns empty stream on web.
+  Stream<Subscriber> get onSubscriberLoggedIn {
+    if (kIsWeb) return const Stream.empty();
+    return PushFireSDKImpl.instance.onSubscriberLoggedIn;
+  }
 
   /// Stream of subscriber logout events
   ///
-  /// Emits when subscriber logs out
-  Stream<void> get onSubscriberLoggedOut =>
-      PushFireSDKImpl.instance.onSubscriberLoggedOut;
+  /// Returns empty stream on web.
+  Stream<void> get onSubscriberLoggedOut {
+    if (kIsWeb) return const Stream.empty();
+    return PushFireSDKImpl.instance.onSubscriberLoggedOut;
+  }
 
   /// Stream of FCM token refresh events
   ///
-  /// Emits new FCM token when it's refreshed
-  Stream<String> get onFcmTokenRefresh =>
-      PushFireSDKImpl.instance.onFcmTokenRefresh;
+  /// Returns empty stream on web.
+  Stream<String> get onFcmTokenRefresh {
+    if (kIsWeb) return const Stream.empty();
+    return PushFireSDKImpl.instance.onFcmTokenRefresh;
+  }
 
   // Advanced methods
 
   /// Reset SDK and clear all data
   ///
-  /// This will logout the current subscriber and clear all stored data.
-  /// Use with caution as this cannot be undone.
+  /// Does nothing on web.
   Future<void> reset() async {
+    if (kIsWeb) return;
     await PushFireSDKImpl.instance.reset();
   }
 
   /// Dispose SDK resources
   ///
-  /// Call this when your app is shutting down to clean up resources.
-  /// After calling this, you'll need to initialize the SDK again to use it.
+  /// Does nothing on web.
   static void dispose() {
+    if (kIsWeb) return;
     if (PushFireSDKImpl.isInitialized) {
       PushFireSDKImpl.instance.dispose();
     }

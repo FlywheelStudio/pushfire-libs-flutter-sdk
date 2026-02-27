@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:flutter/foundation.dart' show debugPrint, kIsWeb;
 import 'package:flutter/widgets.dart';
 import 'package:firebase_auth/firebase_auth.dart' show FirebaseAuth, User;
 import 'package:firebase_core/firebase_core.dart';
@@ -59,6 +60,16 @@ class PushFireSDKImpl with WidgetsBindingObserver {
 
   /// Initialize the SDK
   static Future<void> initialize(PushFireConfig config) async {
+    if (kIsWeb) {
+      debugPrint(
+        'PushFire SDK: Web is not supported. '
+        'The SDK requires native platform features (FCM, device info, permissions) '
+        'that are not available in web browsers. '
+        'All SDK calls will be silently ignored.',
+      );
+      return;
+    }
+
     if (_isInitialized) {
       PushFireLogger.warning('PushFire SDK already initialized');
       return;
