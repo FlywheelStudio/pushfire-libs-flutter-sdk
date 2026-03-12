@@ -12,6 +12,8 @@ import 'models/device.dart';
 import 'models/subscriber.dart';
 import 'models/subscriber_tag.dart';
 import 'models/workflow_execution.dart';
+import 'models/notification_status.dart';
+import 'models/set_notification_result.dart';
 import 'services/device_service.dart';
 import 'services/subscriber_service.dart';
 import 'services/tag_service.dart';
@@ -526,6 +528,29 @@ class PushFireSDKImpl with WidgetsBindingObserver {
   Future<bool> requestNotificationPermission() async {
     _ensureInitialized();
     return await _deviceService.requestNotificationPermission();
+  }
+
+  /// Set notification preference for the current device
+  Future<SetNotificationResult> setNotificationEnabled(bool enabled) async {
+    _ensureInitialized();
+    final result = await _deviceService.setNotificationEnabled(enabled);
+    if (result == SetNotificationResult.success) {
+      // Update local device reference
+      final deviceId = await _deviceService.getDeviceId();
+      if (_currentDevice != null && deviceId != null) {
+        _currentDevice = _currentDevice!.copyWith(
+          pushNotificationEnabled: enabled,
+        );
+        _deviceRegisteredController.add(_currentDevice!);
+      }
+    }
+    return result;
+  }
+
+  /// Get current notification status
+  Future<NotificationStatus> getNotificationStatus() async {
+    _ensureInitialized();
+    return await _deviceService.getNotificationStatus();
   }
 
   /// Check if SDK is initialized

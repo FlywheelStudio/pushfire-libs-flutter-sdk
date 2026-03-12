@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:flutter/foundation.dart' show visibleForTesting;
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:package_info_plus/package_info_plus.dart';
@@ -8,6 +9,8 @@ import '../api/pushfire_api_client.dart';
 import '../config/pushfire_config.dart';
 import '../exceptions/pushfire_exceptions.dart';
 import '../models/device.dart';
+import '../models/notification_status.dart';
+import '../models/set_notification_result.dart';
 import '../utils/logger.dart';
 
 /// Service for managing device registration and updates
@@ -18,8 +21,21 @@ class DeviceService {
   static const String _fcmTokenKey = 'pushfire_fcm_token';
   static const String _lastPermissionStatusKey =
       'pushfire_last_permission_status';
+  static const String _notificationPreferenceKey =
+      'pushfire_notification_preference';
 
-  DeviceService(this._apiClient, this._config);
+  @visibleForTesting
+  final Future<bool> Function()? isPushNotificationEnabledOverride;
+  @visibleForTesting
+  final Future<Map<String, String>> Function()? getDeviceInfoOverride;
+  @visibleForTesting
+  final Future<String?> Function()? getFcmTokenOverride;
+
+  DeviceService(this._apiClient, this._config, {
+    this.isPushNotificationEnabledOverride,
+    this.getDeviceInfoOverride,
+    this.getFcmTokenOverride,
+  });
 
   /// Register or update device automatically
   Future<Device> registerDevice() async {
@@ -35,6 +51,11 @@ class DeviceService {
       // Get device information
       final deviceInfo = await _getDeviceInfo();
 
+      // Compute effective notification state from OS permission and saved preference
+      final osPermission = await _isPushNotificationEnabled();
+      final savedPreference = await _getSavedNotificationPreference();
+      final effectiveEnabled = osPermission && (savedPreference ?? true);
+
       // Create device object
       final device = Device(
         fcmToken: fcmToken,
@@ -44,7 +65,7 @@ class DeviceService {
         manufacturer: deviceInfo['manufacturer']!,
         model: deviceInfo['model']!,
         appVersion: deviceInfo['appVersion']!,
-        pushNotificationEnabled: await _isPushNotificationEnabled(),
+        pushNotificationEnabled: effectiveEnabled,
       );
 
       PushFireLogger.logDeviceInfo(device.toJson());
@@ -80,14 +101,16 @@ class DeviceService {
         // New device registration
         PushFireLogger.info('Registering new device');
         registeredDevice = await _registerNewDevice(device);
+        // Save default notification preference on first registration
+        await _saveNotificationPreference(true);
       }
 
       // Save device info
       await prefs.setString(_deviceIdKey, registeredDevice.id!);
       await prefs.setString(_fcmTokenKey, fcmToken);
 
-      // Save current permission status
-      await _savePermissionStatus(registeredDevice.pushNotificationEnabled);
+      // Save current OS permission status (raw, not effective value)
+      await _savePermissionStatus(osPermission);
 
       PushFireLogger.info(
           'Device registration completed: ${registeredDevice.id}');
@@ -151,6 +174,9 @@ class DeviceService {
 
   /// Get FCM token
   Future<String?> _getFcmToken() async {
+    if (getFcmTokenOverride != null) {
+      return getFcmTokenOverride!();
+    }
     try {
       final messaging = FirebaseMessaging.instance;
 
@@ -242,6 +268,9 @@ class DeviceService {
 
   /// Check if push notifications are enabled
   Future<bool> _isPushNotificationEnabled() async {
+    if (isPushNotificationEnabledOverride != null) {
+      return isPushNotificationEnabledOverride!();
+    }
     try {
       // For Android 13+ (API 33+), use permission_handler for accurate status
       if (Platform.isAndroid) {
@@ -269,6 +298,9 @@ class DeviceService {
 
   /// Get device information
   Future<Map<String, String>> _getDeviceInfo() async {
+    if (getDeviceInfoOverride != null) {
+      return getDeviceInfoOverride!();
+    }
     final deviceInfoPlugin = DeviceInfoPlugin();
     final packageInfo = await PackageInfo.fromPlatform();
 
@@ -372,6 +404,104 @@ class DeviceService {
     }
   }
 
+  /// Set the notification preference for this device.
+  ///
+  /// - If [enabled] is true and OS permission is denied, returns
+  ///   [SetNotificationResult.systemPermissionDenied] without making a server call.
+  /// - If [enabled] is false, always saves and PATCHes the server.
+  /// - Short-circuits if the preference already matches (except when enabling
+  ///   with OS permission denied — always returns systemPermissionDenied).
+  ///
+  /// Throws [PushFireDeviceException] if no device is registered.
+  Future<SetNotificationResult> setNotificationEnabled(bool enabled) async {
+    try {
+      PushFireLogger.info('Setting notification enabled: $enabled');
+
+      // Check OS permission first when enabling
+      if (enabled) {
+        final osPermission = await _isPushNotificationEnabled();
+        if (!osPermission) {
+          PushFireLogger.warning(
+              'Cannot enable notifications - OS permission is denied');
+          return SetNotificationResult.systemPermissionDenied;
+        }
+      }
+
+      // Short-circuit if preference already matches
+      final currentPreference = await _getSavedNotificationPreference();
+      if (currentPreference == enabled) {
+        PushFireLogger.info(
+            'Notification preference already set to $enabled - no change needed');
+        return SetNotificationResult.success;
+      }
+
+      // Get device ID — required for PATCH
+      final deviceId = await getDeviceId();
+      if (deviceId == null) {
+        throw const PushFireDeviceException(
+            'Cannot set notification preference - no device registered');
+      }
+
+      // Save preference locally first
+      await _saveNotificationPreference(enabled);
+
+      // PATCH server
+      final prefs = await SharedPreferences.getInstance();
+      final fcmToken = prefs.getString(_fcmTokenKey);
+      if (fcmToken == null) {
+        throw const PushFireDeviceException(
+            'Cannot set notification preference - no FCM token available');
+      }
+
+      final deviceInfo = await _getDeviceInfo();
+      final device = Device(
+        id: deviceId,
+        fcmToken: fcmToken,
+        os: deviceInfo['os']!,
+        osVersion: deviceInfo['osVersion']!,
+        language: deviceInfo['language']!,
+        manufacturer: deviceInfo['manufacturer']!,
+        model: deviceInfo['model']!,
+        appVersion: deviceInfo['appVersion']!,
+        pushNotificationEnabled: enabled,
+      );
+
+      await _updateDevice(device);
+
+      PushFireLogger.info('Notification preference updated to $enabled');
+      return SetNotificationResult.success;
+    } catch (e) {
+      PushFireLogger.error('Failed to set notification enabled', e);
+      if (e is PushFireException) {
+        rethrow;
+      }
+      throw PushFireDeviceException(
+          'Failed to set notification preference: $e',
+          originalError: e);
+    }
+  }
+
+  /// Get the current notification status.
+  ///
+  /// Returns OS-level permission and the PushFire preference.
+  /// Does not require a registered device — reads OS permission directly
+  /// and saved preference from SharedPreferences.
+  Future<NotificationStatus> getNotificationStatus() async {
+    try {
+      final osPermission = await _isPushNotificationEnabled();
+      final savedPreference = await _getSavedNotificationPreference();
+      return NotificationStatus(
+        isPermissionGranted: osPermission,
+        isEnabled: savedPreference ?? true,
+      );
+    } catch (e) {
+      PushFireLogger.error('Failed to get notification status', e);
+      if (e is PushFireException) rethrow;
+      throw PushFireDeviceException('Failed to get notification status: $e',
+          originalError: e);
+    }
+  }
+
   /// Get stored device ID
   Future<String?> getDeviceId() async {
     final prefs = await SharedPreferences.getInstance();
@@ -384,48 +514,57 @@ class DeviceService {
     await prefs.remove(_deviceIdKey);
     await prefs.remove(_fcmTokenKey);
     await prefs.remove(_lastPermissionStatusKey);
+    await prefs.remove(_notificationPreferenceKey);
     PushFireLogger.info('Device data cleared');
   }
 
-  /// Check for permission status changes and re-register device if needed
-  /// Returns the registered Device if permission changed from denied to authorized, null otherwise
+  /// Check for permission status changes and handle based on saved preference.
+  ///
+  /// - OS revoked: always PATCH server false
+  /// - OS re-granted + saved preference true: PATCH server true (restore)
+  /// - OS re-granted + saved preference false: do nothing (dev opted out)
+  /// - No change: do nothing
+  ///
+  /// Returns the registered Device if server was updated, null otherwise.
   Future<Device?> checkAndHandlePermissionStatusChange() async {
     try {
-      final currentStatus = await _isPushNotificationEnabled();
-      final lastStatus = await _getLastPermissionStatus();
+      final currentOsPermission = await _isPushNotificationEnabled();
+      final lastOsPermission = await _getLastPermissionStatus();
 
-      // If we don't have a last status, save current status and return
-      if (lastStatus == null) {
-        await _savePermissionStatus(currentStatus);
+      // If we don't have a last status, save current and return
+      if (lastOsPermission == null) {
+        await _savePermissionStatus(currentOsPermission);
         return null;
       }
 
-      // Check if permission changed from denied to authorized
-      if (!lastStatus && currentStatus) {
-        PushFireLogger.info(
-            'Notification permission changed from denied to authorized - re-registering device');
-
-        // Re-register device to update permission status on server
-        final device = await registerDevice();
-
-        return device;
+      // No change in OS permission — do nothing
+      if (lastOsPermission == currentOsPermission) {
+        return null;
       }
 
-      // Update stored status if it changed
-      if (lastStatus != currentStatus) {
-        await _savePermissionStatus(currentStatus);
-        if (currentStatus) {
+      // OS permission changed — save the new OS status
+      await _savePermissionStatus(currentOsPermission);
+
+      if (!currentOsPermission) {
+        // OS permission was revoked — always PATCH server false
+        PushFireLogger.info(
+            'OS notification permission revoked - updating server to disabled');
+        final device = await registerDevice();
+        return device;
+      } else {
+        // OS permission was re-granted — check saved preference
+        final savedPreference = await _getSavedNotificationPreference();
+        if (savedPreference ?? true) {
           PushFireLogger.info(
-              'Notification permission status changed to authorized - re-registering device');
+              'OS notification permission re-granted and preference is enabled - restoring');
           final device = await registerDevice();
           return device;
         } else {
           PushFireLogger.info(
-              'Notification permission status changed to denied');
+              'OS notification permission re-granted but preference is disabled - not restoring');
+          return null;
         }
       }
-
-      return null;
     } catch (e) {
       PushFireLogger.error('Failed to check permission status change', e);
       return null;
@@ -450,6 +589,27 @@ class DeviceService {
       await prefs.setBool(_lastPermissionStatusKey, enabled);
     } catch (e) {
       PushFireLogger.warning('Failed to save permission status', e);
+    }
+  }
+
+  /// Get saved notification preference (developer-set value)
+  Future<bool?> _getSavedNotificationPreference() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      return prefs.getBool(_notificationPreferenceKey);
+    } catch (e) {
+      PushFireLogger.warning('Failed to get saved notification preference', e);
+      return null;
+    }
+  }
+
+  /// Save notification preference
+  Future<void> _saveNotificationPreference(bool enabled) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool(_notificationPreferenceKey, enabled);
+    } catch (e) {
+      PushFireLogger.warning('Failed to save notification preference', e);
     }
   }
 

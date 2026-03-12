@@ -6,6 +6,8 @@ export 'src/models/device.dart';
 export 'src/models/subscriber.dart';
 export 'src/models/subscriber_tag.dart';
 export 'src/models/workflow_execution.dart';
+export 'src/models/notification_status.dart';
+export 'src/models/set_notification_result.dart';
 export 'src/exceptions/pushfire_exceptions.dart';
 
 import 'package:flutter/foundation.dart' show kIsWeb;
@@ -16,6 +18,8 @@ import 'src/models/device.dart';
 import 'src/models/subscriber.dart';
 import 'src/models/subscriber_tag.dart';
 import 'src/models/workflow_execution.dart';
+import 'src/models/notification_status.dart';
+import 'src/models/set_notification_result.dart';
 
 /// Main PushFire SDK class
 ///
@@ -302,6 +306,28 @@ class PushFireSDK {
   Future<bool> requestNotificationPermission() async {
     if (kIsWeb) return false;
     return await PushFireSDKImpl.instance.requestNotificationPermission();
+  }
+
+  /// Set the notification preference for this device.
+  ///
+  /// Returns [SetNotificationResult.success] if updated, or
+  /// [SetNotificationResult.systemPermissionDenied] if trying to enable
+  /// while OS permission is denied.
+  ///
+  /// Returns null on web.
+  Future<SetNotificationResult?> setNotificationEnabled(bool enabled) async {
+    if (kIsWeb) return null;
+    return await PushFireSDKImpl.instance.setNotificationEnabled(enabled);
+  }
+
+  /// Get the current notification status.
+  ///
+  /// Returns the OS permission state and the PushFire notification preference.
+  ///
+  /// Returns null on web.
+  Future<NotificationStatus?> getNotificationStatus() async {
+    if (kIsWeb) return null;
+    return await PushFireSDKImpl.instance.getNotificationStatus();
   }
 
   // Event streams
