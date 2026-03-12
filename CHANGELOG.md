@@ -1,5 +1,28 @@
 # Changelog
 
+## [0.1.11]
+
+### Added
+- **Notification Preference Management**: Developer-controlled notification opt-out with two-layer control system
+  - `setNotificationEnabled(bool)` — toggle PushFire notifications independently of OS permissions
+  - `getNotificationStatus()` — returns both OS permission state and PushFire preference
+  - `SetNotificationResult` enum — indicates success or OS permission denied
+  - `NotificationStatus` model — exposes `isPermissionGranted` (OS) and `isEnabled` (preference)
+  - Returns `systemPermissionDenied` when trying to enable with OS permission off (no silent failures)
+  - Short-circuits when preference already matches (avoids unnecessary server calls)
+  - Saves preference locally before server call — next auto-sync reconciles on failure
+
+### Changed
+- **Preference-Aware Auto-Sync**: App resume and token refresh now respect developer-set preference
+  - OS revoked → always disables on server
+  - OS re-granted + preference enabled → restores notifications
+  - OS re-granted + preference disabled → does nothing (respects developer opt-out)
+- **registerDevice()**: Uses `osPermission && (savedPreference ?? true)` instead of raw OS check
+- **clearDeviceData()**: Also clears the notification preference key
+
+### Fixed
+- **OS Permission Tracking**: `registerDevice()` now saves raw OS permission status instead of the effective (combined) value, preventing spurious server calls after preference toggles
+
 ## [0.1.10]
 
 ### Added
