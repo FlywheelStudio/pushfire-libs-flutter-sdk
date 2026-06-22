@@ -111,9 +111,10 @@ class PushFireSDKImpl with WidgetsBindingObserver {
       await Firebase.initializeApp();
       PushFireLogger.info('Firebase initialized successfully');
     } catch (e) {
-      // Firebase might already be initialized, which is fine
+      // Firebase is most likely already initialized (common and harmless).
+      // If it is a real failure, downstream FCM calls will surface it.
       PushFireLogger.info(
-          'Firebase already initialized or initialization failed: $e');
+          'Firebase initializeApp() skipped or failed (continuing): $e');
     }
 
     // Initialize services
@@ -226,7 +227,7 @@ class PushFireSDKImpl with WidgetsBindingObserver {
       _deviceRegisteredController.add(_currentDevice!);
       PushFireLogger.info('Device auto-registration completed');
     } catch (e) {
-      PushFireLogger.error('Device auto-registration failed', e);
+      PushFireLogger.warning('Device auto-registration failed', e);
       // Don't throw here - allow SDK to continue working
     }
   }
@@ -249,7 +250,7 @@ class PushFireSDKImpl with WidgetsBindingObserver {
 
         PushFireLogger.info('Device updated with new FCM token');
       } catch (e) {
-        PushFireLogger.error('Failed to update device with new FCM token', e);
+        PushFireLogger.warning('Failed to update device with new FCM token', e);
       }
     });
   }
@@ -301,7 +302,7 @@ class PushFireSDKImpl with WidgetsBindingObserver {
         PushFireLogger.info('Device updated after permission status change');
       }
     } catch (e) {
-      PushFireLogger.error(
+      PushFireLogger.warning(
           'Failed to check permission status on app resume', e);
     } finally {
       _isCheckingPermission = false;
@@ -318,21 +319,16 @@ class PushFireSDKImpl with WidgetsBindingObserver {
   }) async {
     _ensureInitialized();
 
-    try {
-      _currentSubscriber = await _subscriberService.loginSubscriber(
-        externalId: externalId,
-        name: name,
-        email: email,
-        phone: phone,
-        metadata: metadata,
-      );
+    _currentSubscriber = await _subscriberService.loginSubscriber(
+      externalId: externalId,
+      name: name,
+      email: email,
+      phone: phone,
+      metadata: metadata,
+    );
 
-      _subscriberLoggedInController.add(_currentSubscriber!);
-      return _currentSubscriber!;
-    } catch (e) {
-      PushFireLogger.error('Subscriber login failed', e);
-      rethrow;
-    }
+    _subscriberLoggedInController.add(_currentSubscriber!);
+    return _currentSubscriber!;
   }
 
   /// Update subscriber
@@ -349,47 +345,37 @@ class PushFireSDKImpl with WidgetsBindingObserver {
       throw const PushFireSubscriberException('No subscriber logged in');
     }
 
-    try {
-      // Always use current subscriber's externalId (backend doesn't allow updates)
-      await _subscriberService.updateSubscriber(
-        subscriberId: currentSubscriber!.id!,
-        externalId: currentSubscriber.externalId,
-        name: name,
-        email: email,
-        phone: phone,
-        metadata: metadata,
-      );
+    // Always use current subscriber's externalId (backend doesn't allow updates)
+    await _subscriberService.updateSubscriber(
+      subscriberId: currentSubscriber!.id!,
+      externalId: currentSubscriber.externalId,
+      name: name,
+      email: email,
+      phone: phone,
+      metadata: metadata,
+    );
 
-      // Update the local subscriber state (externalId remains unchanged)
-      _currentSubscriber = currentSubscriber.copyWith(
-        name: name,
-        email: email,
-        phone: phone,
-        metadata: metadata,
-      );
+    // Update the local subscriber state (externalId remains unchanged)
+    _currentSubscriber = currentSubscriber.copyWith(
+      name: name,
+      email: email,
+      phone: phone,
+      metadata: metadata,
+    );
 
-      // Store updated subscriber data
-      await _subscriberService.storeSubscriberData(_currentSubscriber!);
+    // Store updated subscriber data
+    await _subscriberService.storeSubscriberData(_currentSubscriber!);
 
-      return _currentSubscriber!;
-    } catch (e) {
-      PushFireLogger.error('Subscriber update failed', e);
-      rethrow;
-    }
+    return _currentSubscriber!;
   }
 
   /// Logout subscriber
   Future<void> logoutSubscriber() async {
     _ensureInitialized();
 
-    try {
-      await _subscriberService.logoutSubscriber();
-      _currentSubscriber = null;
-      _subscriberLoggedOutController.add(null);
-    } catch (e) {
-      PushFireLogger.error('Subscriber logout failed', e);
-      rethrow;
-    }
+    await _subscriberService.logoutSubscriber();
+    _currentSubscriber = null;
+    _subscriberLoggedOutController.add(null);
   }
 
   /// Add tag to current subscriber
@@ -576,26 +562,21 @@ class PushFireSDKImpl with WidgetsBindingObserver {
   Future<void> reset() async {
     _ensureInitialized();
 
-    try {
-      PushFireLogger.info('Resetting SDK');
+    PushFireLogger.info('Resetting SDK');
 
-      // Logout subscriber if logged in
-      if (await isSubscriberLoggedIn()) {
-        await logoutSubscriber();
-      }
-
-      // Clear device data
-      await _deviceService.clearDeviceData();
-
-      // Reset current state
-      _currentDevice = null;
-      _currentSubscriber = null;
-
-      PushFireLogger.info('SDK reset completed');
-    } catch (e) {
-      PushFireLogger.error('SDK reset failed', e);
-      rethrow;
+    // Logout subscriber if logged in
+    if (await isSubscriberLoggedIn()) {
+      await logoutSubscriber();
     }
+
+    // Clear device data
+    await _deviceService.clearDeviceData();
+
+    // Reset current state
+    _currentDevice = null;
+    _currentSubscriber = null;
+
+    PushFireLogger.info('SDK reset completed');
   }
 
   /// Dispose SDK resources
