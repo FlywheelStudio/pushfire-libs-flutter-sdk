@@ -79,7 +79,8 @@ void main() {
         throwsA(isA<PushFireApiException>()
             .having((e) => e.statusCode, 'statusCode', 502)
             .having((e) => e.message, 'message',
-                'API request failed with status 502')),
+                'API request failed with status 502')
+            .having((e) => e.responseBody, 'responseBody', contains('<html>502</html>'))),
       );
     });
   });
@@ -90,7 +91,8 @@ void main() {
       final client = PushFireApiClient(config, httpClient: mock);
       await expectLater(
         client.post('x', {}),
-        throwsA(isA<PushFireNetworkException>()),
+        throwsA(isA<PushFireNetworkException>()
+            .having((e) => e.message, 'message', contains('Network error'))),
       );
     });
 
@@ -99,7 +101,8 @@ void main() {
       final client = PushFireApiClient(config, httpClient: mock);
       await expectLater(
         client.post('x', {}),
-        throwsA(isA<PushFireNetworkException>()),
+        throwsA(isA<PushFireNetworkException>()
+            .having((e) => e.message, 'message', contains('timed out'))),
       );
     });
   });
