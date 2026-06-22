@@ -45,11 +45,10 @@ class TagService {
 
       PushFireLogger.info('Tag added successfully: $tagId');
       return tag;
+    } on PushFireException {
+      rethrow;
     } catch (e) {
-      PushFireLogger.error('Failed to add tag', e);
-      if (e is PushFireException) {
-        rethrow;
-      }
+      PushFireLogger.error('Unexpected error adding tag', e);
       throw PushFireTagException(
         'Failed to add tag: $e',
         originalError: e,
@@ -91,11 +90,10 @@ class TagService {
 
       PushFireLogger.info('Tag updated successfully: $tagId');
       return tag;
+    } on PushFireException {
+      rethrow;
     } catch (e) {
-      PushFireLogger.error('Failed to update tag', e);
-      if (e is PushFireException) {
-        rethrow;
-      }
+      PushFireLogger.error('Unexpected error updating tag', e);
       throw PushFireTagException(
         'Failed to update tag: $e',
         originalError: e,
@@ -128,11 +126,10 @@ class TagService {
       await _apiClient.delete('remove-subscriber-tag', tagData);
 
       PushFireLogger.info('Tag removed successfully: $tagId');
+    } on PushFireException {
+      rethrow;
     } catch (e) {
-      PushFireLogger.error('Failed to remove tag', e);
-      if (e is PushFireException) {
-        rethrow;
-      }
+      PushFireLogger.error('Unexpected error removing tag', e);
       throw PushFireTagException(
         'Failed to remove tag: $e',
         originalError: e,

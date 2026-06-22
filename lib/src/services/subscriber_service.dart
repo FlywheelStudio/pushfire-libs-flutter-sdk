@@ -86,11 +86,10 @@ class SubscriberService {
 
       PushFireLogger.info('Subscriber login completed: $subscriberId');
       return subscriber;
+    } on PushFireException {
+      rethrow;
     } catch (e) {
-      PushFireLogger.error('Subscriber login failed', e);
-      if (e is PushFireException) {
-        rethrow;
-      }
+      PushFireLogger.error('Unexpected error during subscriber login', e);
       throw PushFireSubscriberException(
         'Subscriber login failed: $e',
         originalError: e,
@@ -126,11 +125,10 @@ class SubscriberService {
       await _apiClient.patch('update-subscriber', updateData);
 
       PushFireLogger.info('Subscriber updated successfully');
+    } on PushFireException {
+      rethrow;
     } catch (e) {
-      PushFireLogger.error('Subscriber update failed', e);
-      if (e is PushFireException) {
-        rethrow;
-      }
+      PushFireLogger.error('Unexpected error during subscriber update', e);
       throw PushFireSubscriberException(
         'Subscriber update failed: $e',
         originalError: e,
@@ -168,13 +166,16 @@ class SubscriberService {
 
       PushFireLogger.info('Subscriber logout completed');
     } catch (e) {
-      PushFireLogger.error('Subscriber logout failed', e);
-      // Clear local data even if API call fails
+      // Single catch (not `on PushFireException { rethrow; }` like the other
+      // methods) is deliberate: local data must be cleared on BOTH expected
+      // and unexpected failures. Clear first, then rethrow PushFireExceptions
+      // (already logged downstream) or wrap-and-log genuinely unexpected ones.
       await _clearSubscriberData();
 
       if (e is PushFireException) {
         rethrow;
       }
+      PushFireLogger.error('Unexpected error during subscriber logout', e);
       throw PushFireSubscriberException(
         'Subscriber logout failed: $e',
         originalError: e,

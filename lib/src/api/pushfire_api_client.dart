@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'package:http/http.dart' as http;
@@ -10,8 +11,8 @@ class PushFireApiClient {
   final PushFireConfig _config;
   late final http.Client _httpClient;
 
-  PushFireApiClient(this._config) {
-    _httpClient = http.Client();
+  PushFireApiClient(this._config, {http.Client? httpClient}) {
+    _httpClient = httpClient ?? http.Client();
   }
 
   /// Get common headers for API requests
@@ -86,21 +87,30 @@ class PushFireApiClient {
         response.body,
       );
 
-      return _handleResponse(response);
+      return _handleResponse(method, endpoint, response);
+    } on PushFireException {
+      rethrow;
+    } on TimeoutException catch (e) {
+      final message =
+          'Request to $method $endpoint timed out after ${_config.timeoutSeconds}s';
+      PushFireLogger.error(message, e);
+      throw PushFireNetworkException(message, originalError: e);
     } on SocketException catch (e) {
-      PushFireLogger.error('Network error: ${e.message}', e);
+      PushFireLogger.error(
+          'Network error during $method $endpoint: ${e.message}', e);
       throw PushFireNetworkException(
         'Network error: ${e.message}',
         originalError: e,
       );
     } on HttpException catch (e) {
-      PushFireLogger.error('HTTP error: ${e.message}', e);
+      PushFireLogger.error(
+          'HTTP error during $method $endpoint: ${e.message}', e);
       throw PushFireNetworkException(
         'HTTP error: ${e.message}',
         originalError: e,
       );
     } catch (e) {
-      PushFireLogger.error('Unexpected error during API request', e);
+      PushFireLogger.error('Unexpected error during $method $endpoint', e);
       throw PushFireApiException(
         'Unexpected error: $e',
         originalError: e,
@@ -109,7 +119,11 @@ class PushFireApiClient {
   }
 
   /// Handle HTTP response
-  Map<String, dynamic> _handleResponse(http.Response response) {
+  Map<String, dynamic> _handleResponse(
+    String method,
+    String endpoint,
+    http.Response response,
+  ) {
     final statusCode = response.statusCode;
     final body = response.body;
 
@@ -141,6 +155,9 @@ class PushFireApiClient {
     } catch (e) {
       errorMessage = 'API request failed with status $statusCode';
     }
+
+    PushFireLogger.logApiError(
+        method, endpoint, statusCode, errorCode, errorMessage);
 
     throw PushFireApiException(
       errorMessage,

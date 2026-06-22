@@ -44,10 +44,10 @@ void main() {
         expect(config.apiKey, 'test-api-key');
       });
 
-      test('baseUrl defaults to the expected Supabase URL', () {
+      test('baseUrl defaults to the expected PushFire API URL', () {
         expect(
           config.baseUrl,
-          'https://jojnoebcqoqjlshwzmjm.supabase.co/functions/v1/',
+          'https://api.pushfire.app/functions/v1/',
         );
       });
 
@@ -258,7 +258,7 @@ void main() {
         expect(
           result,
           'PushFireConfig(baseUrl: '
-          'https://jojnoebcqoqjlshwzmjm.supabase.co/functions/v1/, '
+          'https://api.pushfire.app/functions/v1/, '
           'enableLogging: false, timeoutSeconds: 30)',
         );
       });

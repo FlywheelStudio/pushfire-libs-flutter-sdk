@@ -498,11 +498,13 @@ if (PushFireSDK.isInitialized) {
 | Parameter | Type | Required | Default | Description |
 |-----------|------|----------|---------|-------------|
 | `apiKey` | String | Yes | - | Your PushFire API key |
-| `baseUrl` | String | No | `https://jojnoebcqoqjlshwzmjm.supabase.co/functions/v1/` | API base URL |
+| `baseUrl` | String | No | `https://api.pushfire.app/functions/v1/` | API base URL |
 | `enableLogging` | bool | No | `false` | Enable debug logging |
 | `timeoutSeconds` | int | No | `30` | Request timeout in seconds |
 | `authProvider` | AuthProvider | No | `AuthProvider.none` | Authentication provider for automatic subscriber management |
 | `requestNotificationPermission` | bool | No | `true` | Automatically request notification permissions during SDK initialization |
+
+> **⚠️ Logging & privacy:** When `enableLogging` is `true`, the SDK logs full request and response bodies — including subscriber PII such as `email`, `phone`, `name`, and `metadata`. Logging is **off by default** and uses `dart:developer` (generally not emitted in release builds), but if you forward SDK logs anywhere (for example a crash reporter or log aggregator), do **not** do so in production builds with logging enabled.
 
 ## Notification Permissions
 

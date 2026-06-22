@@ -433,7 +433,8 @@ void main() {
         expect(request.target, target);
       });
 
-      test('scheduledFor is optional even for scheduled type at construction', () {
+      test('scheduledFor is optional even for scheduled type at construction',
+          () {
         // Construction does not validate; validate() does.
         final request = WorkflowExecutionRequest(
           workflowId: validUuid1,
@@ -582,8 +583,8 @@ void main() {
         );
 
         final json = request.toJson();
-        final targetJson =
-            (json['data'] as Map<String, dynamic>)['target'] as Map<String, dynamic>;
+        final targetJson = (json['data'] as Map<String, dynamic>)['target']
+            as Map<String, dynamic>;
 
         expect(targetJson['type'], 'Segments');
         expect(targetJson['values'], [validUuid2, validUuid3]);
@@ -850,7 +851,8 @@ void main() {
             () => request.validate(),
             throwsA(
               predicate<ArgumentError>(
-                (e) => e.message ==
+                (e) =>
+                    e.message ==
                     'All target values must be valid UUIDs: $badValue',
               ),
             ),
@@ -859,7 +861,8 @@ void main() {
       });
 
       group('validation priority order', () {
-        test('empty workflowId checked before scheduled without scheduledFor', () {
+        test('empty workflowId checked before scheduled without scheduledFor',
+            () {
           final request = WorkflowExecutionRequest(
             workflowId: '',
             type: WorkflowExecutionType.scheduled,
@@ -876,7 +879,9 @@ void main() {
           );
         });
 
-        test('scheduled without scheduledFor checked before empty target values', () {
+        test(
+            'scheduled without scheduledFor checked before empty target values',
+            () {
           final request = WorkflowExecutionRequest(
             workflowId: validUuid1,
             type: WorkflowExecutionType.scheduled,
@@ -915,7 +920,9 @@ void main() {
           );
         });
 
-        test('invalid workflowId UUID checked before invalid target value UUIDs', () {
+        test(
+            'invalid workflowId UUID checked before invalid target value UUIDs',
+            () {
           final request = WorkflowExecutionRequest(
             workflowId: 'not-uuid-format',
             type: WorkflowExecutionType.immediate,
