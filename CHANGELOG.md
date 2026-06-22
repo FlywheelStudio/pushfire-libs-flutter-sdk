@@ -1,6 +1,6 @@
 # Changelog
 
-## [0.1.12]
+## [0.2.0]
 
 ### Changed
 - **Default API base URL** is now `https://api.pushfire.app/functions/v1/` (was the raw Supabase functions URL). Functionally identical endpoint; keeps the backend project ref out of the SDK and logs. Override via `PushFireConfig.baseUrl` is unaffected.
@@ -8,7 +8,9 @@
 
 ### Fixed
 - **Structured API exceptions are preserved**: a non-2xx response now throws a `PushFireApiException` whose `statusCode`, `code`, and `responseBody` are populated, instead of being re-wrapped into a generic exception with `statusCode == null`.
-- **Timeouts are labeled**: request timeouts now throw `PushFireNetworkException` with a clear "timed out after Ns" message instead of "Unexpected error".
+
+### ⚠️ Potentially breaking
+- **Request timeouts now throw `PushFireNetworkException`** with a clear "timed out after Ns" message. Previously a timeout surfaced as a generic `PushFireApiException` with an "Unexpected error" message. If you catch `PushFireApiException` specifically to handle timeouts, also catch `PushFireNetworkException` — or catch the shared base `PushFireException`. (`SocketException`/`HttpException` already mapped to `PushFireNetworkException`.)
 
 ### Internal
 - `PushFireApiClient` accepts an injectable `http.Client` for testing; added API client error/timeout/network test coverage.

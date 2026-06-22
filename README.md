@@ -504,6 +504,8 @@ if (PushFireSDK.isInitialized) {
 | `authProvider` | AuthProvider | No | `AuthProvider.none` | Authentication provider for automatic subscriber management |
 | `requestNotificationPermission` | bool | No | `true` | Automatically request notification permissions during SDK initialization |
 
+> **⚠️ Logging & privacy:** When `enableLogging` is `true`, the SDK logs full request and response bodies — including subscriber PII such as `email`, `phone`, `name`, and `metadata`. Logging is **off by default** and uses `dart:developer` (generally not emitted in release builds), but if you forward SDK logs anywhere (for example a crash reporter or log aggregator), do **not** do so in production builds with logging enabled.
+
 ## Notification Permissions
 
 The PushFire SDK provides flexible notification permission handling to accommodate different app requirements and user experience strategies.
