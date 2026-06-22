@@ -20,7 +20,7 @@ class PushFireConfig {
 
   const PushFireConfig({
     required this.apiKey,
-    this.baseUrl = 'https://jojnoebcqoqjlshwzmjm.supabase.co/functions/v1/',
+    this.baseUrl = 'https://api.pushfire.app/functions/v1/',
     this.enableLogging = false,
     this.timeoutSeconds = 30,
     this.authProvider = AuthProvider.none,

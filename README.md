@@ -498,7 +498,7 @@ if (PushFireSDK.isInitialized) {
 | Parameter | Type | Required | Default | Description |
 |-----------|------|----------|---------|-------------|
 | `apiKey` | String | Yes | - | Your PushFire API key |
-| `baseUrl` | String | No | `https://jojnoebcqoqjlshwzmjm.supabase.co/functions/v1/` | API base URL |
+| `baseUrl` | String | No | `https://api.pushfire.app/functions/v1/` | API base URL |
 | `enableLogging` | bool | No | `false` | Enable debug logging |
 | `timeoutSeconds` | int | No | `30` | Request timeout in seconds |
 | `authProvider` | AuthProvider | No | `AuthProvider.none` | Authentication provider for automatic subscriber management |
