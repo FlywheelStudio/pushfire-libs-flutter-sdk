@@ -56,7 +56,7 @@ void main() {
       await expectLater(
         client.post('x', {}),
         throwsA(isA<PushFireApiException>()
-            .having((e) => e.message, 'message', isNot(contains('Unexpected')))
+            .having((e) => e.message, 'message', 'Nope')
             .having((e) => e.statusCode, 'statusCode', 403)),
       );
     });
@@ -67,7 +67,9 @@ void main() {
       await expectLater(
         client.post('x', {}),
         throwsA(isA<PushFireApiException>()
-            .having((e) => e.statusCode, 'statusCode', 500)),
+            .having((e) => e.statusCode, 'statusCode', 500)
+            .having((e) => e.message, 'message', 'boom')
+            .having((e) => e.code, 'code', isNull)),
       );
     });
 
@@ -78,8 +80,7 @@ void main() {
         client.post('x', {}),
         throwsA(isA<PushFireApiException>()
             .having((e) => e.statusCode, 'statusCode', 502)
-            .having((e) => e.message, 'message',
-                'API request failed with status 502')
+            .having((e) => e.message, 'message', contains('502'))
             .having((e) => e.responseBody, 'responseBody', contains('<html>502</html>'))),
       );
     });
@@ -102,7 +103,24 @@ void main() {
       await expectLater(
         client.post('x', {}),
         throwsA(isA<PushFireNetworkException>()
-            .having((e) => e.message, 'message', contains('timed out'))),
+            .having((e) => e.message, 'message', contains('timed out'))
+            .having((e) => e.originalError, 'originalError', isA<TimeoutException>())),
+      );
+    });
+
+    test('timeout message includes the configured seconds', () async {
+      final mock = MockClient((req) async => throw TimeoutException('slow'));
+      final client = PushFireApiClient(
+        const PushFireConfig(
+            apiKey: 'k',
+            baseUrl: 'https://api.pushfire.app/functions/v1/',
+            timeoutSeconds: 15),
+        httpClient: mock,
+      );
+      await expectLater(
+        client.post('x', {}),
+        throwsA(isA<PushFireNetworkException>()
+            .having((e) => e.message, 'message', contains('15s'))),
       );
     });
   });

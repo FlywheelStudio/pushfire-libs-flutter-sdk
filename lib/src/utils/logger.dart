@@ -1,4 +1,5 @@
 import 'dart:developer' as developer;
+import 'package:flutter/foundation.dart' show visibleForTesting;
 import 'package:logging/logging.dart';
 
 /// Centralized logging utility for PushFire SDK
@@ -84,6 +85,22 @@ class PushFireLogger {
     }
   }
 
+  /// Build the API error log line. Extracted as a pure function for testing.
+  @visibleForTesting
+  static String formatApiError(
+    String method,
+    String endpoint,
+    int statusCode,
+    String? code,
+    String message,
+  ) {
+    final buffer =
+        StringBuffer('API error: $method $endpoint -> HTTP $statusCode');
+    if (code != null) buffer.write(' code=$code');
+    buffer.write(' msg="$message"');
+    return buffer.toString();
+  }
+
   /// Log an API error response as a single, clear error line
   static void logApiError(
     String method,
@@ -93,11 +110,7 @@ class PushFireLogger {
     String message,
   ) {
     if (_enableLogging) {
-      final buffer =
-          StringBuffer('API error: $method $endpoint -> HTTP $statusCode');
-      if (code != null) buffer.write(' code=$code');
-      buffer.write(' msg="$message"');
-      error(buffer.toString());
+      error(formatApiError(method, endpoint, statusCode, code, message));
     }
   }
 
