@@ -373,9 +373,15 @@ class PushFireSDKImpl with WidgetsBindingObserver {
   Future<void> logoutSubscriber() async {
     _ensureInitialized();
 
-    await _subscriberService.logoutSubscriber();
-    _currentSubscriber = null;
-    _subscriberLoggedOutController.add(null);
+    try {
+      await _subscriberService.logoutSubscriber();
+    } finally {
+      // SubscriberService clears persisted local data even when the logout
+      // API call fails, so always mirror that cleared session in memory and
+      // emit the logout event. Any error still propagates to the caller.
+      _currentSubscriber = null;
+      _subscriberLoggedOutController.add(null);
+    }
   }
 
   /// Add tag to current subscriber
