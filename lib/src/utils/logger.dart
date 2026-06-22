@@ -84,6 +84,23 @@ class PushFireLogger {
     }
   }
 
+  /// Log an API error response as a single, clear error line
+  static void logApiError(
+    String method,
+    String endpoint,
+    int statusCode,
+    String? code,
+    String message,
+  ) {
+    if (_enableLogging) {
+      final buffer =
+          StringBuffer('API error: $method $endpoint -> HTTP $statusCode');
+      if (code != null) buffer.write(' code=$code');
+      buffer.write(' msg="$message"');
+      error(buffer.toString());
+    }
+  }
+
   /// Log device information
   static void logDeviceInfo(Map<String, dynamic> deviceInfo) {
     if (_enableLogging) {
