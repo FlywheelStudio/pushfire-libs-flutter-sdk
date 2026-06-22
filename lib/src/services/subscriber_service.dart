@@ -166,7 +166,10 @@ class SubscriberService {
 
       PushFireLogger.info('Subscriber logout completed');
     } catch (e) {
-      // Clear local data even if API call fails
+      // Single catch (not `on PushFireException { rethrow; }` like the other
+      // methods) is deliberate: local data must be cleared on BOTH expected
+      // and unexpected failures. Clear first, then rethrow PushFireExceptions
+      // (already logged downstream) or wrap-and-log genuinely unexpected ones.
       await _clearSubscriberData();
 
       if (e is PushFireException) {
