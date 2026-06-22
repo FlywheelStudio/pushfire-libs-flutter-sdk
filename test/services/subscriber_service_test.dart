@@ -69,7 +69,8 @@ void main() {
       service = SubscriberService(fakeApi, deviceService);
     });
 
-    test('clears local data when the API throws a PushFireApiException', () async {
+    test('clears local data when the API throws a PushFireApiException',
+        () async {
       _seedPrefs();
 
       fakeApi.throwOnPost(
@@ -103,7 +104,8 @@ void main() {
       expect(prefs.getString(_subscriberIdKey), isNull,
           reason: 'subscriber-id key should be cleared after unexpected error');
       expect(prefs.getString(_subscriberDataKey), isNull,
-          reason: 'subscriber-data key should be cleared after unexpected error');
+          reason:
+              'subscriber-data key should be cleared after unexpected error');
     });
   });
 }

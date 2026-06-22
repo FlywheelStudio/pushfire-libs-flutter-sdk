@@ -41,7 +41,8 @@ void main() {
     group('toString', () {
       test('with message only', () {
         const exception = PushFireApiException('Something went wrong');
-        expect(exception.toString(), 'PushFireApiException: Something went wrong');
+        expect(
+            exception.toString(), 'PushFireApiException: Something went wrong');
       });
 
       test('with code only', () {

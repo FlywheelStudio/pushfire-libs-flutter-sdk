@@ -212,10 +212,8 @@ void main() {
 
       final status = await service.getNotificationStatus();
 
-      expect(
-          status,
-          const NotificationStatus(
-              isPermissionGranted: true, isEnabled: true));
+      expect(status,
+          const NotificationStatus(isPermissionGranted: true, isEnabled: true));
     });
 
     test('returns OS granted + preference false', () async {
@@ -250,10 +248,8 @@ void main() {
 
       final status = await service.getNotificationStatus();
 
-      expect(
-          status,
-          const NotificationStatus(
-              isPermissionGranted: true, isEnabled: true));
+      expect(status,
+          const NotificationStatus(isPermissionGranted: true, isEnabled: true));
     });
 
     test('works without device registration', () async {

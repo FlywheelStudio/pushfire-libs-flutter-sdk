@@ -5,9 +5,8 @@ void main() {
   group('PushFireLogger.formatApiError', () {
     test('includes code when present', () {
       expect(
-        PushFireLogger.formatApiError(
-            'PATCH', 'update-subscriber', 401, 'missing_auth',
-            'Missing authorization header'),
+        PushFireLogger.formatApiError('PATCH', 'update-subscriber', 401,
+            'missing_auth', 'Missing authorization header'),
         'API error: PATCH update-subscriber -> HTTP 401 '
         'code=missing_auth msg="Missing authorization header"',
       );

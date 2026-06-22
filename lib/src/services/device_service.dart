@@ -31,7 +31,9 @@ class DeviceService {
   @visibleForTesting
   final Future<String?> Function()? getFcmTokenOverride;
 
-  DeviceService(this._apiClient, this._config, {
+  DeviceService(
+    this._apiClient,
+    this._config, {
     this.isPushNotificationEnabledOverride,
     this.getDeviceInfoOverride,
     this.getFcmTokenOverride,
@@ -474,9 +476,9 @@ class DeviceService {
     } on PushFireException {
       rethrow;
     } catch (e) {
-      PushFireLogger.error('Unexpected error setting notification preference', e);
-      throw PushFireDeviceException(
-          'Failed to set notification preference: $e',
+      PushFireLogger.error(
+          'Unexpected error setting notification preference', e);
+      throw PushFireDeviceException('Failed to set notification preference: $e',
           originalError: e);
     }
   }

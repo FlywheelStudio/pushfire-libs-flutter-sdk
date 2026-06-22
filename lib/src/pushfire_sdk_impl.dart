@@ -138,9 +138,9 @@ class PushFireSDKImpl with WidgetsBindingObserver {
       case AuthProvider.supabase:
         PushFireLogger.info('Listening for auth state changes');
         // Listen for auth state changes
-        _supabaseAuthSubscription =
-            sp.Supabase.instance.client.auth.onAuthStateChange
-                .listen((data) async {
+        _supabaseAuthSubscription = sp
+            .Supabase.instance.client.auth.onAuthStateChange
+            .listen((data) async {
           final event = data.event;
           final session = data.session;
           // Handle auth state changes if needed
@@ -151,8 +151,7 @@ class PushFireSDKImpl with WidgetsBindingObserver {
             final user = session.user;
 
             // Skip if already logged in as this user
-            final current =
-                await _subscriberService.getCurrentSubscriber();
+            final current = await _subscriberService.getCurrentSubscriber();
             if (current != null && current.externalId == user.id) {
               PushFireLogger.info(
                   'Subscriber already logged in as ${user.id}, skipping auto-login');
@@ -168,10 +167,7 @@ class PushFireSDKImpl with WidgetsBindingObserver {
                 ? null
                 : user.userMetadata?['full_name'];
             loginSubscriber(
-                externalId: user.id,
-                email: email,
-                phone: phone,
-                name: name);
+                externalId: user.id, email: email, phone: phone, name: name);
           } else if (event == sp.AuthChangeEvent.signedOut) {
             logoutSubscriber();
           }
@@ -185,8 +181,7 @@ class PushFireSDKImpl with WidgetsBindingObserver {
             PushFireLogger.info('User signed in: ${user.uid}');
 
             // Skip if already logged in as this user
-            final current =
-                await _subscriberService.getCurrentSubscriber();
+            final current = await _subscriberService.getCurrentSubscriber();
             if (current != null && current.externalId == user.uid) {
               PushFireLogger.info(
                   'Subscriber already logged in as ${user.uid}, skipping auto-login');
@@ -202,10 +197,7 @@ class PushFireSDKImpl with WidgetsBindingObserver {
                 ? null
                 : user.phoneNumber;
             loginSubscriber(
-                externalId: user.uid,
-                email: email,
-                name: name,
-                phone: phone);
+                externalId: user.uid, email: email, name: name, phone: phone);
           } else {
             PushFireLogger.info('User signed out');
             logoutSubscriber();

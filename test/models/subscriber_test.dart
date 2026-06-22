@@ -82,8 +82,7 @@ void main() {
       );
       expect(
         (nestedMetadataSubscriber.metadata!['preferences']
-                as Map<String, dynamic>)['notifications']
-            as Map<String, dynamic>,
+            as Map<String, dynamic>)['notifications'] as Map<String, dynamic>,
         {'email': true, 'sms': false},
       );
     });
@@ -158,8 +157,7 @@ void main() {
       final subscriber = Subscriber.fromJson(json);
 
       expect(subscriber.metadata, isNotNull);
-      final profile =
-          subscriber.metadata!['profile'] as Map<String, dynamic>;
+      final profile = subscriber.metadata!['profile'] as Map<String, dynamic>;
       expect(profile['bio'], 'Hello world');
       expect(profile['links'], ['https://a.com', 'https://b.com']);
       expect(subscriber.metadata!['scores'], [100, 200, 300]);
@@ -397,14 +395,20 @@ void main() {
       final a = Subscriber(
         externalId: 'ext-deep',
         metadata: {
-          'nested': {'inner': 'value', 'list': [1, 2, 3]},
+          'nested': {
+            'inner': 'value',
+            'list': [1, 2, 3]
+          },
           'top': 'level',
         },
       );
       final b = Subscriber(
         externalId: 'ext-deep',
         metadata: {
-          'nested': {'inner': 'value', 'list': [1, 2, 3]},
+          'nested': {
+            'inner': 'value',
+            'list': [1, 2, 3]
+          },
           'top': 'level',
         },
       );
@@ -516,8 +520,7 @@ void main() {
       expect(a.hashCode, equals(b.hashCode));
     });
 
-    test(
-        'metadata with different insertion order produces same hashCode', () {
+    test('metadata with different insertion order produces same hashCode', () {
       final metaA = <String, dynamic>{'x': 1, 'y': 2, 'z': 3};
 
       final metaB = <String, dynamic>{};

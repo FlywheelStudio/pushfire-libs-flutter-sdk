@@ -16,7 +16,8 @@ void main() {
 
   group('PushFireApiClient success responses', () {
     test('2xx with JSON body returns decoded map', () async {
-      final mock = MockClient((req) async => http.Response('{"id":"sub_1"}', 200));
+      final mock =
+          MockClient((req) async => http.Response('{"id":"sub_1"}', 200));
       final client = PushFireApiClient(config, httpClient: mock);
       final result = await client.post('login-subscriber', {'data': {}});
       expect(result['id'], 'sub_1');
@@ -50,7 +51,8 @@ void main() {
     });
 
     test('error is NOT re-wrapped as "Unexpected error"', () async {
-      final mock = MockClient((req) async => http.Response('{"message":"Nope"}', 403));
+      final mock =
+          MockClient((req) async => http.Response('{"message":"Nope"}', 403));
       final client = PushFireApiClient(config, httpClient: mock);
 
       await expectLater(
@@ -62,7 +64,8 @@ void main() {
     });
 
     test('5xx sets the status code', () async {
-      final mock = MockClient((req) async => http.Response('{"message":"boom"}', 500));
+      final mock =
+          MockClient((req) async => http.Response('{"message":"boom"}', 500));
       final client = PushFireApiClient(config, httpClient: mock);
       await expectLater(
         client.post('x', {}),
@@ -74,21 +77,24 @@ void main() {
     });
 
     test('non-JSON error body falls back to a status message', () async {
-      final mock = MockClient((req) async => http.Response('<html>502</html>', 502));
+      final mock =
+          MockClient((req) async => http.Response('<html>502</html>', 502));
       final client = PushFireApiClient(config, httpClient: mock);
       await expectLater(
         client.post('x', {}),
         throwsA(isA<PushFireApiException>()
             .having((e) => e.statusCode, 'statusCode', 502)
             .having((e) => e.message, 'message', contains('502'))
-            .having((e) => e.responseBody, 'responseBody', contains('<html>502</html>'))),
+            .having((e) => e.responseBody, 'responseBody',
+                contains('<html>502</html>'))),
       );
     });
   });
 
   group('PushFireApiClient transport errors', () {
     test('SocketException becomes PushFireNetworkException', () async {
-      final mock = MockClient((req) async => throw const SocketException('no route'));
+      final mock =
+          MockClient((req) async => throw const SocketException('no route'));
       final client = PushFireApiClient(config, httpClient: mock);
       await expectLater(
         client.post('x', {}),
@@ -104,7 +110,8 @@ void main() {
         client.post('x', {}),
         throwsA(isA<PushFireNetworkException>()
             .having((e) => e.message, 'message', contains('timed out'))
-            .having((e) => e.originalError, 'originalError', isA<TimeoutException>())),
+            .having((e) => e.originalError, 'originalError',
+                isA<TimeoutException>())),
       );
     });
 

@@ -96,13 +96,15 @@ class PushFireApiClient {
       PushFireLogger.error(message, e);
       throw PushFireNetworkException(message, originalError: e);
     } on SocketException catch (e) {
-      PushFireLogger.error('Network error during $method $endpoint: ${e.message}', e);
+      PushFireLogger.error(
+          'Network error during $method $endpoint: ${e.message}', e);
       throw PushFireNetworkException(
         'Network error: ${e.message}',
         originalError: e,
       );
     } on HttpException catch (e) {
-      PushFireLogger.error('HTTP error during $method $endpoint: ${e.message}', e);
+      PushFireLogger.error(
+          'HTTP error during $method $endpoint: ${e.message}', e);
       throw PushFireNetworkException(
         'HTTP error: ${e.message}',
         originalError: e,
