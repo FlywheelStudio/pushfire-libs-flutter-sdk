@@ -115,11 +115,10 @@ class DeviceService {
       PushFireLogger.info(
           'Device registration completed: ${registeredDevice.id}');
       return registeredDevice;
+    } on PushFireException {
+      rethrow;
     } catch (e) {
-      PushFireLogger.error('Device registration failed', e);
-      if (e is PushFireException) {
-        rethrow;
-      }
+      PushFireLogger.error('Unexpected error during device registration', e);
       throw PushFireDeviceException('Device registration failed: $e',
           originalError: e);
     }
@@ -148,10 +147,10 @@ class DeviceService {
       }
 
       return device.copyWith(id: deviceId);
+    } on PushFireException {
+      rethrow;
     } catch (e) {
-      if (e is PushFireException) {
-        rethrow;
-      }
+      PushFireLogger.error('Unexpected error registering new device', e);
       throw PushFireDeviceException('Failed to register device: $e',
           originalError: e);
     }
@@ -163,10 +162,10 @@ class DeviceService {
       final deviceData = {'data': device.toJson()};
       await _apiClient.patch('update-device', deviceData);
       return device;
+    } on PushFireException {
+      rethrow;
     } catch (e) {
-      if (e is PushFireException) {
-        rethrow;
-      }
+      PushFireLogger.error('Unexpected error updating device', e);
       throw PushFireDeviceException('Failed to update device: $e',
           originalError: e);
     }
@@ -395,9 +394,11 @@ class DeviceService {
       }
 
       return isGranted;
+    } on PushFireException {
+      rethrow;
     } catch (e) {
       PushFireLogger.error(
-          'Failed to request notification permission manually', e);
+          'Unexpected error requesting notification permission', e);
       throw PushFireDeviceException(
           'Failed to request notification permission: $e',
           originalError: e);
@@ -470,11 +471,10 @@ class DeviceService {
 
       PushFireLogger.info('Notification preference updated to $enabled');
       return SetNotificationResult.success;
+    } on PushFireException {
+      rethrow;
     } catch (e) {
-      PushFireLogger.error('Failed to set notification enabled', e);
-      if (e is PushFireException) {
-        rethrow;
-      }
+      PushFireLogger.error('Unexpected error setting notification preference', e);
       throw PushFireDeviceException(
           'Failed to set notification preference: $e',
           originalError: e);
@@ -494,9 +494,10 @@ class DeviceService {
         isPermissionGranted: osPermission,
         isEnabled: savedPreference ?? true,
       );
+    } on PushFireException {
+      rethrow;
     } catch (e) {
-      PushFireLogger.error('Failed to get notification status', e);
-      if (e is PushFireException) rethrow;
+      PushFireLogger.error('Unexpected error getting notification status', e);
       throw PushFireDeviceException('Failed to get notification status: $e',
           originalError: e);
     }
@@ -566,7 +567,7 @@ class DeviceService {
         }
       }
     } catch (e) {
-      PushFireLogger.error('Failed to check permission status change', e);
+      PushFireLogger.warning('Failed to check permission status change', e);
       return null;
     }
   }

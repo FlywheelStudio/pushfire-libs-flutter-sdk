@@ -32,11 +32,10 @@ class WorkflowService {
 
       PushFireLogger.info('Workflow execution created successfully');
       return response;
+    } on PushFireException {
+      rethrow;
     } catch (e) {
-      PushFireLogger.error('Workflow execution creation failed', e);
-      if (e is PushFireException) {
-        rethrow;
-      }
+      PushFireLogger.error('Unexpected error creating workflow execution', e);
       throw PushFireApiException(
         'Workflow execution creation failed: $e',
         originalError: e,
