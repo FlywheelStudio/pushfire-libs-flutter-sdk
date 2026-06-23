@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.2.1]
+
+### Fixed
+- **API error messages now surface the server's actual error** instead of a generic "API request failed". The parser additionally reads validation-style `{"errors":[{"message":...}]}` responses (joining multiple messages), and when no recognized field is present it falls back to the raw response body. Non-JSON error bodies (e.g. HTML gateway pages) are shown as-is; only a truly empty body falls back to "API request failed with status &lt;n&gt;". (The full body was already available via `PushFireApiException.responseBody`.)
+
 ## [0.2.0]
 
 ### Changed

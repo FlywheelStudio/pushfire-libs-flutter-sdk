@@ -147,12 +147,26 @@ class PushFireApiClient {
     String? errorCode;
 
     try {
-      final decoded = json.decode(body) as Map<String, dynamic>;
-      errorMessage = decoded['message'] as String? ??
-          decoded['error'] as String? ??
-          'API request failed';
-      errorCode = decoded['code'] as String?;
-    } catch (e) {
+      final decoded = json.decode(body);
+      if (decoded is Map<String, dynamic>) {
+        // Try the known shapes, then fall back to the whole body so the caller
+        // always sees the server's actual response, not a generic string.
+        errorMessage = decoded['message'] as String? ??
+            decoded['error'] as String? ??
+            _extractErrorsList(decoded['errors']) ??
+            body.trim();
+        errorCode = decoded['code'] as String?;
+      } else {
+        // Valid JSON but not an object (array, string, number) — show it raw.
+        errorMessage = body.trim();
+      }
+    } catch (_) {
+      // Body is not JSON (e.g. an HTML gateway page) — show it raw.
+      errorMessage = body.trim();
+    }
+
+    // Last resort when the response body is empty/blank.
+    if (errorMessage.isEmpty) {
       errorMessage = 'API request failed with status $statusCode';
     }
 
@@ -165,6 +179,20 @@ class PushFireApiClient {
       statusCode: statusCode,
       responseBody: body,
     );
+  }
+
+  /// Extract and join messages from a validation-style `errors` array, e.g.
+  /// `{"errors":[{"path":"data.phone","message":"Phone is required"}]}`.
+  /// Returns null when [errors] is not a non-empty list carrying messages.
+  static String? _extractErrorsList(dynamic errors) {
+    if (errors is! List || errors.isEmpty) return null;
+    final messages = errors
+        .whereType<Map>()
+        .map((e) => e['message'])
+        .whereType<String>()
+        .where((m) => m.isNotEmpty)
+        .toList();
+    return messages.isEmpty ? null : messages.join('; ');
   }
 
   /// Dispose the HTTP client
