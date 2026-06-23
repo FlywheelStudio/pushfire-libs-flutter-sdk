@@ -76,17 +76,72 @@ void main() {
       );
     });
 
-    test('non-JSON error body falls back to a status message', () async {
-      final mock =
-          MockClient((req) async => http.Response('<html>502</html>', 502));
+    test('non-JSON error body is surfaced raw', () async {
+      final mock = MockClient(
+          (req) async => http.Response('<html>502 Bad Gateway</html>', 502));
       final client = PushFireApiClient(config, httpClient: mock);
       await expectLater(
         client.post('x', {}),
         throwsA(isA<PushFireApiException>()
             .having((e) => e.statusCode, 'statusCode', 502)
-            .having((e) => e.message, 'message', contains('502'))
+            .having((e) => e.message, 'message', '<html>502 Bad Gateway</html>')
             .having((e) => e.responseBody, 'responseBody',
-                contains('<html>502</html>'))),
+                contains('<html>502 Bad Gateway</html>'))),
+      );
+    });
+
+    test('nested errors[] array surfaces the validation message', () async {
+      final mock = MockClient((req) async => http.Response(
+            '{"errors":[{"path":"data.phone","message":"Phone is required"}]}',
+            400,
+          ));
+      final client = PushFireApiClient(config, httpClient: mock);
+      await expectLater(
+        client.patch('update-subscriber', {'data': {}}),
+        throwsA(isA<PushFireApiException>()
+            .having((e) => e.statusCode, 'statusCode', 400)
+            .having((e) => e.message, 'message', 'Phone is required')),
+      );
+    });
+
+    test('multiple errors[] messages are joined', () async {
+      final mock = MockClient((req) async => http.Response(
+            '{"errors":[{"message":"Phone is required"},'
+            '{"message":"Email is invalid"}]}',
+            400,
+          ));
+      final client = PushFireApiClient(config, httpClient: mock);
+      await expectLater(
+        client.post('x', {}),
+        throwsA(isA<PushFireApiException>().having((e) => e.message, 'message',
+            'Phone is required; Email is invalid')),
+      );
+    });
+
+    test('unknown JSON shape falls back to the whole body', () async {
+      final mock = MockClient((req) async => http.Response(
+            '{"unexpected":"shape","detail":42}',
+            422,
+          ));
+      final client = PushFireApiClient(config, httpClient: mock);
+      await expectLater(
+        client.post('x', {}),
+        throwsA(isA<PushFireApiException>()
+            .having((e) => e.statusCode, 'statusCode', 422)
+            .having((e) => e.message, 'message',
+                '{"unexpected":"shape","detail":42}')),
+      );
+    });
+
+    test('empty error body falls back to a status message', () async {
+      final mock = MockClient((req) async => http.Response('', 500));
+      final client = PushFireApiClient(config, httpClient: mock);
+      await expectLater(
+        client.post('x', {}),
+        throwsA(isA<PushFireApiException>()
+            .having((e) => e.statusCode, 'statusCode', 500)
+            .having((e) => e.message, 'message',
+                'API request failed with status 500')),
       );
     });
   });
