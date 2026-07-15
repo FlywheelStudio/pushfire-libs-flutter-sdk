@@ -54,6 +54,7 @@ app.*.map.json
 **/ios/**/.tags*
 **/ios/**/.vagrant/
 **/ios/**/DerivedData/
+**/ios/.derived-data-log-*
 **/ios/**/Icon?
 **/ios/**/Pods/
 **/ios/**/.symlinks/

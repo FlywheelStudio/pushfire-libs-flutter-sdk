@@ -330,6 +330,30 @@ class PushFireSDK {
     return await PushFireSDKImpl.instance.getNotificationStatus();
   }
 
+  /// Re-check the OS notification permission and sync any change to PushFire.
+  ///
+  /// The SDK syncs automatically when the app returns to the foreground, but
+  /// call this to force an immediate sync — typically right after the user
+  /// returns from the settings page opened via [openNotificationSettings].
+  ///
+  /// Returns the current [NotificationStatus] after syncing, or null on web.
+  Future<NotificationStatus?> syncNotificationPermission() async {
+    if (kIsWeb) return null;
+    return await PushFireSDKImpl.instance.syncNotificationPermission();
+  }
+
+  /// Open the OS settings page for this app so the user can grant the
+  /// notification permission manually.
+  ///
+  /// Useful when the permission has been permanently denied and
+  /// [requestNotificationPermission] no longer shows a system prompt.
+  ///
+  /// Returns true if the settings page was opened. Returns false on web.
+  Future<bool> openNotificationSettings() async {
+    if (kIsWeb) return false;
+    return await PushFireSDKImpl.instance.openNotificationSettings();
+  }
+
   // Event streams
 
   /// Stream of device registration events

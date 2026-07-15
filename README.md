@@ -537,7 +537,7 @@ await PushFireSDK.initialize(
 );
 
 // Later, when appropriate for your UX
-bool permissionGranted = await PushFireSDK.requestNotificationPermission();
+bool permissionGranted = await PushFireSDK.instance.requestNotificationPermission();
 if (permissionGranted) {
   print('Notification permission granted');
 } else {
@@ -553,11 +553,55 @@ The SDK handles platform-specific permission requirements:
 - **Android**: Handles runtime permissions for Android 13+ (API level 33+) and gracefully handles older versions
 - **Web**: Requests browser notification permissions through Firebase Messaging
 
+### Handling Permanently Denied Permission
+
+Once the user denies the notification prompt (iOS: any denial; Android: the second
+denial), calling `requestNotificationPermission()` again no longer shows a system
+dialog — it returns `false` without prompting. At that point the only way for the
+user to enable notifications is through the OS settings app. Use
+`openNotificationSettings()` to send them there:
+
+```dart
+final granted = await PushFireSDK.instance.requestNotificationPermission();
+if (!granted) {
+  // The prompt was suppressed (permanently denied). Explain why notifications
+  // matter, then deep-link the user into the settings app.
+  final open = await showEnableNotificationsDialog(); // your own UI
+  if (open) {
+    await PushFireSDK.instance.openNotificationSettings();
+  }
+}
+```
+
+### Syncing Permission Changes Made in Settings
+
+When the user grants or revokes the notification permission from the OS settings
+app, PushFire needs to know so it stops or resumes delivery. The SDK handles this
+automatically: it observes the app lifecycle and, whenever the app returns to the
+foreground, re-checks the OS permission and updates the device on the server if it
+changed. No action is required for the common case.
+
+If you need to force an immediate sync — for example right after the user returns
+from `openNotificationSettings()` — call `syncNotificationPermission()`:
+
+```dart
+await PushFireSDK.instance.openNotificationSettings();
+
+// ...after the user comes back to your app
+final status = await PushFireSDK.instance.syncNotificationPermission();
+if (status?.isPermissionGranted ?? false) {
+  print('Notifications enabled and synced to PushFire');
+}
+```
+
+`syncNotificationPermission()` re-checks the OS permission, re-registers the device
+with PushFire if it changed, and returns the current `NotificationStatus`.
+
 ### Best Practices for Permissions
 
 1. **Context Matters**: Request permissions when users understand the value of notifications
 2. **Graceful Degradation**: Your app should work even if permissions are denied
-3. **Re-request Strategy**: Use `requestNotificationPermission()` to re-request if initially denied
+3. **Re-request Strategy**: `requestNotificationPermission()` re-prompts only while the permission is still undetermined. Once it is permanently denied the call returns `false` without a dialog — send the user to `openNotificationSettings()` instead
 4. **User Education**: Explain the benefits before requesting permissions
 
 ### Permission Status Handling
@@ -565,8 +609,8 @@ The SDK handles platform-specific permission requirements:
 The SDK automatically:
 - Logs permission request outcomes for debugging
 - Continues device registration even if permissions are denied
-- Supports manual permission grants through device settings
-- Re-registers the device when permissions are granted via manual request
+- Detects permission changes made in the OS settings when the app returns to the foreground, and re-registers the device to sync the change to PushFire
+- Exposes `syncNotificationPermission()` to force that sync on demand, and `openNotificationSettings()` to deep-link the user into the settings app
 
 ## Error Types
 

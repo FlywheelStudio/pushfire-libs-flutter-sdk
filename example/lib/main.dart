@@ -19,8 +19,8 @@ void main() async {
             '370d68b4-9f91-46d3-af64-15247fd783eb', // Replace with your actual API key
         enableLogging: true, // Enable for debugging
         timeoutSeconds: 30,
-        // requestNotificationPermission: true, // Default: automatically request permissions
-        // requestNotificationPermission: false, // Disable automatic requests for manual control
+        // TEMP (device happy-path test): standard prompt to fetch a real token
+        requestNotificationPermission: true,
       ),
     );
     print('PushFire SDK initialized successfully');
@@ -249,7 +249,7 @@ class _PushFireExampleState extends State<PushFireExample> {
       );
 
       setState(() {
-        _status = 'Tag added: ${tag.tagId} = ${tag.value}';
+        _status = 'Tag added: ${tag?.tagId} = ${tag?.value}';
       });
 
       _tagIdController.clear();

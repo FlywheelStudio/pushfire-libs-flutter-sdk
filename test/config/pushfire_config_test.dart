@@ -66,6 +66,14 @@ void main() {
       test('requestNotificationPermission defaults to true', () {
         expect(config.requestNotificationPermission, true);
       });
+
+      test('iosRegisterWithoutPrompt defaults to false', () {
+        expect(config.iosRegisterWithoutPrompt, false);
+      });
+
+      test('getFcmTokenOverride defaults to null', () {
+        expect(config.getFcmTokenOverride, isNull);
+      });
     });
 
     group('construction with all parameters', () {
@@ -195,6 +203,31 @@ void main() {
         final copy = original.copyWith(requestNotificationPermission: false);
         expect(copy.requestNotificationPermission, false);
         expect(copy.apiKey, original.apiKey);
+      });
+
+      test('copies with updated iosRegisterWithoutPrompt', () {
+        final copy = original.copyWith(iosRegisterWithoutPrompt: true);
+        expect(copy.iosRegisterWithoutPrompt, true);
+        expect(copy.apiKey, original.apiKey);
+      });
+
+      test('preserves iosRegisterWithoutPrompt when not overridden', () {
+        final base = original.copyWith(iosRegisterWithoutPrompt: true);
+        final copy = base.copyWith(apiKey: 'other');
+        expect(copy.iosRegisterWithoutPrompt, true);
+      });
+
+      test('copies with updated getFcmTokenOverride', () {
+        Future<String?> fetcher() async => 'overridden-token';
+        final copy = original.copyWith(getFcmTokenOverride: fetcher);
+        expect(copy.getFcmTokenOverride, isNotNull);
+      });
+
+      test('preserves getFcmTokenOverride when not overridden', () {
+        Future<String?> fetcher() async => 'overridden-token';
+        final base = original.copyWith(getFcmTokenOverride: fetcher);
+        final copy = base.copyWith(apiKey: 'other');
+        expect(copy.getFcmTokenOverride, same(fetcher));
       });
 
       test('copies with multiple parameters updated at once', () {
