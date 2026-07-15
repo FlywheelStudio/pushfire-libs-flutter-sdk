@@ -537,6 +537,34 @@ class PushFireSDKImpl with WidgetsBindingObserver {
     return await _deviceService.getNotificationStatus();
   }
 
+  /// Re-check the OS notification permission and sync the change to PushFire.
+  ///
+  /// The SDK already does this automatically when the app returns to the
+  /// foreground, but call this to force an immediate sync — for example right
+  /// after sending the user to the settings app via [openNotificationSettings].
+  /// If the OS permission changed since the last check the device is
+  /// re-registered with the updated status.
+  ///
+  /// Returns the current [NotificationStatus] after syncing.
+  Future<NotificationStatus> syncNotificationPermission() async {
+    _ensureInitialized();
+    final device = await _deviceService.checkAndHandlePermissionStatusChange();
+    if (device != null) {
+      _currentDevice = device;
+      _deviceRegisteredController.add(device);
+    }
+    return await _deviceService.getNotificationStatus();
+  }
+
+  /// Open the OS settings page for this app so the user can grant the
+  /// notification permission manually.
+  ///
+  /// Returns true if the settings page was opened.
+  Future<bool> openNotificationSettings() async {
+    _ensureInitialized();
+    return await _deviceService.openNotificationSettings();
+  }
+
   /// Check if SDK is initialized
   static bool get isInitialized => _isInitialized;
 

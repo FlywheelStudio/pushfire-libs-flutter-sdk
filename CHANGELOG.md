@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.3.0]
+
+### Added
+- **`syncNotificationPermission()`** — forces an immediate re-check of the OS notification permission and syncs any change to PushFire (re-registering the device when it changed), returning the current `NotificationStatus`. Previously this only happened automatically when the app returned to the foreground, with no way to trigger it on demand.
+- **`openNotificationSettings()`** — deep-links the user into the OS settings page for the app (wraps `permission_handler`'s `openAppSettings()`). Use it for the permanently-denied case, where `requestNotificationPermission()` no longer shows a system prompt.
+- **`PushFireConfig.getFcmTokenOverride`** — optional `Future<String?> Function()` hook to supply your own (e.g. APNS-aware) FCM token fetcher. Previously only reachable via an internal test-only constructor. A constructor-level override still takes precedence when present.
+- **`PushFireConfig.iosRegisterWithoutPrompt`** (iOS only, default `false`) — when `requestNotificationPermission` is `false`, opt in to trigger remote-notification registration without showing the authorization dialog, so an APNS/FCM token can still be obtained. Implemented via provisional authorization. Note: provisional authorization is not "no authorization" — it delivers notifications quietly to Notification Center and the user may be asked later to keep or disable them. For a truly authorization-free registration, call `application.registerForRemoteNotifications()` from your AppDelegate and leave this `false`.
+
+### Fixed
+- **iOS auto-registration no longer hard-fails with `apns-token-not-set`.** On iOS the APNS token is delivered asynchronously by Apple after `registerForRemoteNotifications`, so calling `FirebaseMessaging.getToken()` during `initialize()` could throw `[firebase_messaging/apns-token-not-set]` and leave the device unregistered. `DeviceService` now waits for the APNS token (polls `getAPNSToken()` up to 10 times at 500ms) before requesting the FCM token. If the token never arrives (simulator, offline, or registration was never triggered), it skips `getToken()` and returns null instead of throwing — the device registers later via the existing `onTokenRefresh` listener.
+
+### Docs
+- Rewrote the README notification-permissions section: documented the denied → settings flow, the automatic and on-demand permission sync, and corrected the "re-request strategy" guidance (re-requesting no longer prompts once permanently denied).
+
 ## [0.2.1]
 
 ### Fixed

@@ -30,6 +30,8 @@ class DeviceService {
   final Future<Map<String, String>> Function()? getDeviceInfoOverride;
   @visibleForTesting
   final Future<String?> Function()? getFcmTokenOverride;
+  @visibleForTesting
+  final Future<bool> Function()? openAppSettingsOverride;
 
   DeviceService(
     this._apiClient,
@@ -37,6 +39,7 @@ class DeviceService {
     this.isPushNotificationEnabledOverride,
     this.getDeviceInfoOverride,
     this.getFcmTokenOverride,
+    this.openAppSettingsOverride,
   });
 
   /// Register or update device automatically
@@ -175,8 +178,11 @@ class DeviceService {
 
   /// Get FCM token
   Future<String?> _getFcmToken() async {
-    if (getFcmTokenOverride != null) {
-      return getFcmTokenOverride!();
+    // Testing override takes precedence; otherwise honor an integrator-supplied
+    // override from PushFireConfig (e.g. an APNS-aware fetcher on iOS).
+    final override = getFcmTokenOverride ?? _config.getFcmTokenOverride;
+    if (override != null) {
+      return override();
     }
     try {
       final messaging = FirebaseMessaging.instance;
@@ -224,6 +230,28 @@ class DeviceService {
       } else {
         PushFireLogger.info(
             'Automatic permission request disabled in configuration');
+        // Fix B: even with the prompt disabled, optionally ensure iOS registers
+        // for remote notifications so an APNS token can arrive (without showing
+        // the authorization dialog).
+        if (Platform.isIOS && _config.iosRegisterWithoutPrompt) {
+          await _ensureIosApnsRegistrationWithoutPrompt(messaging);
+        }
+      }
+
+      // Fix A: on iOS the APNS token is delivered asynchronously by Apple after
+      // registerForRemoteNotifications. Calling getToken() before it lands
+      // throws [firebase_messaging/apns-token-not-set]. Wait for it first, and
+      // if it never arrives (simulator/offline, or registration was never
+      // triggered) skip getToken() and return null so auto-registration doesn't
+      // hard-fail — the device will register later via onTokenRefresh.
+      if (Platform.isIOS) {
+        final apnsToken = await _waitForApnsToken(messaging);
+        if (apnsToken == null) {
+          PushFireLogger.warning(
+              'APNS token not available yet - skipping FCM token fetch. '
+              'Device will register once the token arrives (onTokenRefresh).');
+          return null;
+        }
       }
 
       // Get token regardless of permission status (for manual permission grants)
@@ -236,6 +264,60 @@ class DeviceService {
     } catch (e) {
       PushFireLogger.error('Failed to get FCM token', e);
       return null;
+    }
+  }
+
+  /// iOS only: poll for the APNS token that Apple delivers asynchronously after
+  /// `registerForRemoteNotifications`. Returns null if it does not arrive within
+  /// the retry window (e.g. simulator, offline, or registration never
+  /// triggered).
+  Future<String?> _waitForApnsToken(
+    FirebaseMessaging messaging, {
+    int maxRetries = 10,
+    Duration interval = const Duration(milliseconds: 500),
+  }) async {
+    var apns = await messaging.getAPNSToken();
+    var retries = 0;
+    while (apns == null && retries < maxRetries) {
+      await Future<void>.delayed(interval);
+      apns = await messaging.getAPNSToken();
+      retries++;
+    }
+    if (apns == null) {
+      PushFireLogger.warning(
+          'APNS token still null after ${maxRetries * interval.inMilliseconds}ms');
+    }
+    return apns;
+  }
+
+  /// iOS only: request *provisional* authorization so the OS calls
+  /// `registerForRemoteNotifications` (making an APNS token available) WITHOUT
+  /// showing the interruptive permission dialog.
+  ///
+  /// Provisional authorization delivers notifications quietly to Notification
+  /// Center; it is not the same as "no authorization". Only acts while the user
+  /// has not yet made an explicit choice (status notDetermined) so it never
+  /// overrides an existing decision.
+  Future<void> _ensureIosApnsRegistrationWithoutPrompt(
+      FirebaseMessaging messaging) async {
+    try {
+      final settings = await messaging.getNotificationSettings();
+      if (settings.authorizationStatus == AuthorizationStatus.notDetermined) {
+        PushFireLogger.info(
+            'Requesting provisional authorization to trigger APNS registration without a prompt');
+        await messaging.requestPermission(
+          alert: true,
+          badge: true,
+          sound: true,
+          provisional: true,
+        );
+      } else {
+        PushFireLogger.info(
+            'Skipping provisional registration - authorization already ${settings.authorizationStatus}');
+      }
+    } catch (e) {
+      PushFireLogger.warning(
+          'Failed to ensure iOS APNS registration without prompt', e);
     }
   }
 
@@ -502,6 +584,27 @@ class DeviceService {
       PushFireLogger.error('Unexpected error getting notification status', e);
       throw PushFireDeviceException('Failed to get notification status: $e',
           originalError: e);
+    }
+  }
+
+  /// Open the OS settings page for this app.
+  ///
+  /// Use this when the OS notification permission has been permanently denied
+  /// and re-requesting no longer shows a system prompt — the only way for the
+  /// user to grant it is through the settings app.
+  ///
+  /// Returns true if the settings page was opened successfully.
+  Future<bool> openNotificationSettings() async {
+    if (openAppSettingsOverride != null) {
+      return openAppSettingsOverride!();
+    }
+    try {
+      final opened = await openAppSettings();
+      PushFireLogger.info('Opened app settings: $opened');
+      return opened;
+    } catch (e) {
+      PushFireLogger.warning('Failed to open app settings', e);
+      return false;
     }
   }
 

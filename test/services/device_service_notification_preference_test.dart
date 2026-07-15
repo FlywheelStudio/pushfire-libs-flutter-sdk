@@ -55,6 +55,7 @@ DeviceService createTestService({
   FakeApiClient? apiClient,
   TestPlatformState? platform,
   String? fcmToken = 'test-fcm-token',
+  Future<bool> Function()? openAppSettingsOverride,
 }) {
   final api = apiClient ?? FakeApiClient();
   final state = platform ?? TestPlatformState();
@@ -64,6 +65,7 @@ DeviceService createTestService({
     isPushNotificationEnabledOverride: () async => state.osPermission,
     getDeviceInfoOverride: () async => _testDeviceInfo,
     getFcmTokenOverride: () async => fcmToken,
+    openAppSettingsOverride: openAppSettingsOverride,
   );
 }
 
@@ -471,6 +473,34 @@ void main() {
       final prefs = await SharedPreferences.getInstance();
       // Should not have overwritten to true
       expect(prefs.getBool('pushfire_notification_preference'), false);
+    });
+  });
+
+  group('openNotificationSettings', () {
+    setUp(() {
+      SharedPreferences.setMockInitialValues({});
+    });
+
+    test('returns true when settings opened', () async {
+      var called = false;
+      final service = createTestService(openAppSettingsOverride: () async {
+        called = true;
+        return true;
+      });
+
+      final result = await service.openNotificationSettings();
+
+      expect(called, true);
+      expect(result, true);
+    });
+
+    test('returns false when settings could not be opened', () async {
+      final service =
+          createTestService(openAppSettingsOverride: () async => false);
+
+      final result = await service.openNotificationSettings();
+
+      expect(result, false);
     });
   });
 
