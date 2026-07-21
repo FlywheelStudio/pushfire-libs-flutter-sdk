@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.3.1]
+
+### Fixed
+- **Notification permission changes now sync to PushFire when the app is resumed, not just on cold start.** When the OS notification permission changed while the app stayed alive (common on some OEMs, e.g. Samsung, which do not kill the app on a settings toggle), the resume-time reconciliation saved the new permission status *before* `registerDevice` compared against it, so `registerDevice` saw "no change" and skipped the server update — leaving the device stuck at its previous `pushNotificationEnabled` value in PushFire (a re-grant kept showing as denied). The saved status is no longer written up front; `registerDevice` now detects the change and PATCHes, and persists the status only after a successful sync (so a failed sync is retried on the next resume instead of being lost). Developer opt-out via `setNotificationEnabled(false)` still survives an OS re-grant.
+
 ## [0.3.0]
 
 ### Added

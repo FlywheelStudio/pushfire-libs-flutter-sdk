@@ -648,8 +648,12 @@ class DeviceService {
         return null;
       }
 
-      // OS permission changed — save the new OS status
-      await _savePermissionStatus(currentOsPermission);
+      // OS permission changed. Do NOT persist the new status here:
+      // registerDevice() compares the incoming value against the saved
+      // last-known status to decide whether to PATCH, and saves it itself only
+      // after a successful sync. Writing it up front made registerDevice() see
+      // "no change" and silently skip the server update (and also suppressed
+      // retries, since a failed sync would still have advanced the status).
 
       if (!currentOsPermission) {
         // OS permission was revoked — always PATCH server false
@@ -666,6 +670,9 @@ class DeviceService {
           final device = await registerDevice();
           return device;
         } else {
+          // Developer opted out — don't touch the server, but acknowledge the
+          // OS change so it isn't re-detected on every resume.
+          await _savePermissionStatus(currentOsPermission);
           PushFireLogger.info(
               'OS notification permission re-granted but preference is disabled - not restoring');
           return null;
