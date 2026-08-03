@@ -182,24 +182,31 @@ void main() {
       );
     });
 
-    test('saves preference locally even if server call fails', () async {
+    test(
+        'does not save preference locally when the server call fails '
+        '(regression for #6)', () async {
+      // Regression test for issue #6: persisting the preference before the
+      // PATCH meant a failed request left local state saying "changed"
+      // while the server still had the old value — and because
+      // setNotificationEnabled short-circuits when the local preference
+      // already matches the requested value, a retry would report success
+      // without ever contacting the server again. The preference must only
+      // be persisted after the PATCH succeeds.
       final apiClient = FakeApiClient();
       final service = createTestService(apiClient: apiClient);
 
-      await service.registerDevice();
+      await service.registerDevice(); // saves default preference true
       apiClient.shouldThrowOnPatch = true;
 
-      // Should throw but preference should be saved locally
-      try {
-        await service.setNotificationEnabled(false);
-        fail('Expected exception');
-      } on PushFireException {
-        // Expected
-      }
+      // Should throw and leave the local preference unchanged
+      await expectLater(
+        () => service.setNotificationEnabled(false),
+        throwsA(isA<PushFireException>()),
+      );
 
-      // Verify preference was saved locally
+      // Verify preference was NOT saved locally
       final prefs = await SharedPreferences.getInstance();
-      expect(prefs.getBool('pushfire_notification_preference'), false);
+      expect(prefs.getBool('pushfire_notification_preference'), true);
     });
   });
 

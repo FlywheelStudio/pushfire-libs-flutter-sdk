@@ -530,9 +530,6 @@ class DeviceService {
             'Cannot set notification preference - no device registered');
       }
 
-      // Save preference locally first
-      await _saveNotificationPreference(enabled);
-
       // PATCH server
       final prefs = await SharedPreferences.getInstance();
       final fcmToken = prefs.getString(_fcmTokenKey);
@@ -555,6 +552,12 @@ class DeviceService {
       );
 
       await _updateDevice(device);
+
+      // Persist locally only after the server confirms. If the PATCH
+      // throws, local state must not diverge from the server, otherwise a
+      // retry would short-circuit above and report success without ever
+      // contacting the server again.
+      await _saveNotificationPreference(enabled);
 
       PushFireLogger.info('Notification preference updated to $enabled');
       return SetNotificationResult.success;
