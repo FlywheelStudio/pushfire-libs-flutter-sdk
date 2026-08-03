@@ -572,6 +572,38 @@ void main() {
         expect(data['scheduledFor'], '2026-06-15T10:30:00.000Z');
       });
 
+      test(
+          'serializes local DateTime scheduledFor as UTC with a Z designator',
+          () {
+        // Regression test for issue #7: a local (non-UTC) DateTime must be
+        // converted to UTC before serialization, otherwise the emitted
+        // string has no timezone designator and the backend misreads it as
+        // UTC, firing the workflow off by the caller's offset.
+        //
+        // Constructing via DateTime(...) (not DateTime.utc(...)) always
+        // produces a local DateTime (isUtc == false) regardless of the
+        // machine's timezone, so this assertion is timezone-independent:
+        // on the buggy implementation (toIso8601String() without toUtc())
+        // the string never ends in 'Z' for a local DateTime, at any offset.
+        final localScheduledDate = DateTime(2026, 6, 15, 10, 30);
+        final request = WorkflowExecutionRequest(
+          workflowId: validUuid1,
+          type: WorkflowExecutionType.scheduled,
+          scheduledFor: localScheduledDate,
+          target: makeTarget(),
+        );
+
+        final json = request.toJson();
+        final data = json['data'] as Map<String, dynamic>;
+
+        expect(data['scheduledFor'], isA<String>());
+        expect(data['scheduledFor'], endsWith('Z'));
+        expect(
+          data['scheduledFor'],
+          localScheduledDate.toUtc().toIso8601String(),
+        );
+      });
+
       test('serializes target with correct structure', () {
         final request = WorkflowExecutionRequest(
           workflowId: validUuid1,

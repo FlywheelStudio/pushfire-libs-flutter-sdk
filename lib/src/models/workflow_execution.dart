@@ -139,7 +139,11 @@ class WorkflowExecutionRequest {
     };
 
     if (scheduledFor != null) {
-      data['scheduledFor'] = scheduledFor!.toIso8601String();
+      // Normalize to UTC so the wire value always carries a `Z` designator.
+      // toIso8601String() omits the designator for local DateTimes (isUtc
+      // == false), which the backend then reads as UTC. toUtc() is a no-op
+      // on an already-UTC value, so this is correct for both inputs.
+      data['scheduledFor'] = scheduledFor!.toUtc().toIso8601String();
     }
 
     return {

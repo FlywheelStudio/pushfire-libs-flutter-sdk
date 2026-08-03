@@ -236,6 +236,8 @@ class PushFireSDK {
 
   /// Create a scheduled workflow execution for subscribers
   ///
+  /// [scheduledFor] is an absolute instant; a local DateTime is converted to UTC before being sent.
+  ///
   /// Returns empty map on web.
   Future<Map<String, dynamic>> createScheduledWorkflowForSubscribers({
     required String workflowId,
@@ -251,6 +253,8 @@ class PushFireSDK {
   }
 
   /// Create a scheduled workflow execution for segments
+  ///
+  /// [scheduledFor] is an absolute instant; a local DateTime is converted to UTC before being sent.
   ///
   /// Returns empty map on web.
   Future<Map<String, dynamic>> createScheduledWorkflowForSegments({
