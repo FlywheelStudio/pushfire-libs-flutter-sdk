@@ -14,7 +14,8 @@ class TagService {
   /// Add a tag to the current subscriber
   Future<SubscriberTag> addTag(String tagId, String value) async {
     try {
-      PushFireLogger.info('Adding tag: $tagId = $value');
+      // Value omitted: tag values routinely hold an email, plan or region.
+      PushFireLogger.info('Adding tag: $tagId');
 
       // Get current subscriber ID
       final subscriberId = await _subscriberService.getSubscriberId();
@@ -59,7 +60,7 @@ class TagService {
   /// Update a tag value for the current subscriber
   Future<SubscriberTag> updateTag(String tagId, String value) async {
     try {
-      PushFireLogger.info('Updating tag: $tagId = $value');
+      PushFireLogger.info('Updating tag: $tagId');
 
       // Get current subscriber ID
       final subscriberId = await _subscriberService.getSubscriberId();
