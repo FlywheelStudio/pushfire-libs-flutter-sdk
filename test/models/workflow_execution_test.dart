@@ -572,8 +572,7 @@ void main() {
         expect(data['scheduledFor'], '2026-06-15T10:30:00.000Z');
       });
 
-      test(
-          'serializes local DateTime scheduledFor as UTC with a Z designator',
+      test('serializes local DateTime scheduledFor as UTC with a Z designator',
           () {
         // Regression test for issue #7: a local (non-UTC) DateTime must be
         // converted to UTC before serialization, otherwise the emitted
