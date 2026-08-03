@@ -86,8 +86,11 @@ class DeviceService {
       if (existingDeviceId != null && lastFcmToken == fcmToken) {
         // Device already registered with same FCM token
         // Check if permission status changed - if so, update device
+        // Compare like for like: lastPermissionStatus is the raw OS
+        // permission (see _savePermissionStatus below), so it must be
+        // compared against the raw osPermission, not the effective value.
         if (lastPermissionStatus != null &&
-            lastPermissionStatus != device.pushNotificationEnabled) {
+            lastPermissionStatus != osPermission) {
           PushFireLogger.info(
               'Device permission status changed - updating device with ID: $existingDeviceId');
           registeredDevice =

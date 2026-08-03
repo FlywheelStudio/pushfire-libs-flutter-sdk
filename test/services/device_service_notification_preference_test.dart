@@ -456,6 +456,32 @@ void main() {
       expect(prefs.getBool('pushfire_notification_preference'), true);
     });
 
+    test(
+        'does not PATCH again when OS permission is unchanged and preference '
+        'is off (regression for #5)', () async {
+      // Regression test for issue #5: registerDevice() must compare the
+      // raw OS permission against the raw last-saved OS permission
+      // (lastPermissionStatus), not against the effective value
+      // (osPermission && preference). Comparing raw against effective meant
+      // a device with OS permission granted but the developer preference
+      // set to false would PATCH on every single launch, forever.
+      final apiClient = FakeApiClient();
+      final service = createTestService(apiClient: apiClient);
+
+      // First launch: registers with OS permission granted (default
+      // preference true), then the developer turns notifications off.
+      await service.registerDevice();
+      await service.setNotificationEnabled(false);
+      apiClient.patchCalls.clear();
+
+      // Second launch: same OS permission (granted), same FCM token, same
+      // stored device id, preference still off. Nothing has changed, so no
+      // PATCH should be sent.
+      await service.registerDevice();
+
+      expect(apiClient.patchCalls, isEmpty);
+    });
+
     test('does not overwrite existing preference on re-registration', () async {
       // Pre-set preference to false (developer opted out)
       SharedPreferences.setMockInitialValues({
