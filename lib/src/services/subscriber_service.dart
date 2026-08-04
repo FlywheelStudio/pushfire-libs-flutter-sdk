@@ -47,7 +47,8 @@ class SubscriberService {
         },
       };
 
-      PushFireLogger.info('Logging in subscriber with data: $subscriberData');
+      PushFireLogger.info(
+          'Logging in subscriber with data: ${PushFireLogger.redact(subscriberData)}');
 
       // Make API call
       final response =
@@ -147,7 +148,7 @@ class SubscriberService {
 
       if (subscriber?.id == null || deviceId == null) {
         PushFireLogger.warning('No subscriber or device found for logout');
-        await _clearSubscriberData();
+        await clearSubscriberData();
         return;
       }
 
@@ -162,7 +163,7 @@ class SubscriberService {
       await _apiClient.post('logout-subscriber', logoutData);
 
       // Clear local data
-      await _clearSubscriberData();
+      await clearSubscriberData();
 
       PushFireLogger.info('Subscriber logout completed');
     } catch (e) {
@@ -170,7 +171,7 @@ class SubscriberService {
       // methods) is deliberate: local data must be cleared on BOTH expected
       // and unexpected failures. Clear first, then rethrow PushFireExceptions
       // (already logged downstream) or wrap-and-log genuinely unexpected ones.
-      await _clearSubscriberData();
+      await clearSubscriberData();
 
       if (e is PushFireException) {
         rethrow;
@@ -221,7 +222,7 @@ class SubscriberService {
   }
 
   /// Clear subscriber data from local storage
-  Future<void> _clearSubscriberData() async {
+  Future<void> clearSubscriberData() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_subscriberIdKey);
     await prefs.remove(_subscriberDataKey);

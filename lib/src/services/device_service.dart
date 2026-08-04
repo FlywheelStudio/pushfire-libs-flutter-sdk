@@ -42,8 +42,45 @@ class DeviceService {
     this.openAppSettingsOverride,
   });
 
-  /// Register or update device automatically
-  Future<Device> registerDevice() async {
+  /// The registration currently in flight, if any. See [registerDevice].
+  Future<Device>? _inFlightRegistration;
+
+  /// Register or update device automatically.
+  ///
+  /// Single-flight: registration reads the stored device id, makes a network
+  /// round trip, then writes the id back. Two callers entering before either
+  /// writes would both see no stored id, both POST, and create two device rows
+  /// for one device — the second write wins locally, orphaning the first row
+  /// server-side while it still holds the same FCM token. Concurrent callers
+  /// therefore join the in-flight registration instead of starting a second.
+  ///
+  /// Reachable concurrently from auto-registration at init, the FCM
+  /// token-refresh handler, the foreground permission check, and
+  /// [requestNotificationPermission].
+  Future<Device> registerDevice() {
+    final existing = _inFlightRegistration;
+    if (existing != null) {
+      PushFireLogger.info(
+          'Device registration already in progress - joining it');
+      return existing;
+    }
+
+    final registration = _runRegistration();
+    _inFlightRegistration = registration;
+    return registration;
+  }
+
+  /// Wraps [_performRegistration] so the guard is released on both success and
+  /// failure — a failed attempt must not wedge every later caller.
+  Future<Device> _runRegistration() async {
+    try {
+      return await _performRegistration();
+    } finally {
+      _inFlightRegistration = null;
+    }
+  }
+
+  Future<Device> _performRegistration() async {
     try {
       PushFireLogger.info('Starting device registration');
 

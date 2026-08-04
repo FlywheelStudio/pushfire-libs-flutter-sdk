@@ -1,5 +1,6 @@
 import 'dart:async';
-import 'package:flutter/foundation.dart' show debugPrint, kIsWeb;
+import 'package:flutter/foundation.dart'
+    show debugPrint, kIsWeb, visibleForTesting;
 import 'package:flutter/widgets.dart';
 import 'package:firebase_auth/firebase_auth.dart' show FirebaseAuth, User;
 import 'package:firebase_core/firebase_core.dart';
@@ -47,8 +48,9 @@ class PushFireSDKImpl with WidgetsBindingObserver {
   StreamSubscription<sp.AuthState>? _supabaseAuthSubscription;
   StreamSubscription<User?>? _firebaseAuthSubscription;
 
-  // Flag to prevent overlapping permission checks
-  bool _isCheckingPermission = false;
+  // The permission check currently in flight, if any. Concurrent callers join
+  // it rather than starting a second one. See _guardedPermissionCheck.
+  Future<Device?>? _permissionCheck;
 
   PushFireSDKImpl._();
 
@@ -232,8 +234,13 @@ class PushFireSDKImpl with WidgetsBindingObserver {
         PushFireLogger.info('FCM token refreshed');
         PushFireLogger.logFcmToken(newToken);
 
-        // Check for permission status changes before re-registering
-        await _deviceService.checkAndHandlePermissionStatusChange();
+        // Check for permission status changes before re-registering, through
+        // the same guard the resume path uses: a token refresh arriving during
+        // a foreground resume would otherwise run two overlapping checks.
+        // The result is deliberately ignored — the registerDevice() below
+        // already emits onDeviceRegistered for this refresh, and emitting here
+        // too would produce two events for one logical change.
+        await _guardedPermissionCheck();
 
         // Re-register device with new token
         _currentDevice = await _deviceService.registerDevice();
@@ -269,22 +276,45 @@ class PushFireSDKImpl with WidgetsBindingObserver {
     }
   }
 
+  /// Run the permission-change check under the overlap guard shared by every
+  /// caller — the foreground resume, the FCM token-refresh handler and
+  /// [syncNotificationPermission].
+  ///
+  /// A caller that arrives while a check is running joins it rather than
+  /// starting a second one, and receives null: the owner of the check reports
+  /// the change, so one permission change produces exactly one event no matter
+  /// how many callers are waiting.
+  ///
+  /// Returns the re-registered device when this caller's check synced a
+  /// change, null otherwise.
+  Future<Device?> _guardedPermissionCheck() {
+    final existing = _permissionCheck;
+    if (existing != null) {
+      PushFireLogger.info('Permission check already in progress - joining it');
+      return existing.then((_) => null);
+    }
+
+    final check = _runPermissionCheck();
+    _permissionCheck = check;
+    return check;
+  }
+
+  /// Wraps the check so the guard is released on both success and failure.
+  Future<Device?> _runPermissionCheck() async {
+    try {
+      return await _deviceService.checkAndHandlePermissionStatusChange();
+    } finally {
+      _permissionCheck = null;
+    }
+  }
+
   /// Check permission status when app resumes
   /// This method is safe to call multiple times - it guards against overlapping executions
   Future<void> _checkPermissionStatusOnResume() async {
-    // Prevent overlapping calls - if a check is already in progress, skip this one
-    if (_isCheckingPermission) {
-      PushFireLogger.info(
-          'Permission check already in progress - skipping duplicate call');
-      return;
-    }
-
-    _isCheckingPermission = true;
     try {
       PushFireLogger.info(
           'App resumed - checking notification permission status');
-      final updatedDevice =
-          await _deviceService.checkAndHandlePermissionStatusChange();
+      final updatedDevice = await _guardedPermissionCheck();
 
       if (updatedDevice != null) {
         // Device was already re-registered by checkAndHandlePermissionStatusChange
@@ -296,8 +326,6 @@ class PushFireSDKImpl with WidgetsBindingObserver {
     } catch (e) {
       PushFireLogger.warning(
           'Failed to check permission status on app resume', e);
-    } finally {
-      _isCheckingPermission = false;
     }
   }
 
@@ -548,7 +576,7 @@ class PushFireSDKImpl with WidgetsBindingObserver {
   /// Returns the current [NotificationStatus] after syncing.
   Future<NotificationStatus> syncNotificationPermission() async {
     _ensureInitialized();
-    final device = await _deviceService.checkAndHandlePermissionStatusChange();
+    final device = await _guardedPermissionCheck();
     if (device != null) {
       _currentDevice = device;
       _deviceRegisteredController.add(device);
@@ -590,19 +618,51 @@ class PushFireSDKImpl with WidgetsBindingObserver {
 
     PushFireLogger.info('Resetting SDK');
 
-    // Logout subscriber if logged in
-    if (await isSubscriberLoggedIn()) {
-      await logoutSubscriber();
-    }
-
-    // Clear device data
-    await _deviceService.clearDeviceData();
+    await clearAllLocalState(
+      subscriberService: _subscriberService,
+      deviceService: _deviceService,
+      isSubscriberLoggedIn: isSubscriberLoggedIn,
+      logoutSubscriber: logoutSubscriber,
+    );
 
     // Reset current state
     _currentDevice = null;
     _currentSubscriber = null;
 
     PushFireLogger.info('SDK reset completed');
+  }
+
+  /// The local-state teardown performed by [reset].
+  ///
+  /// Extracted so it can be tested without a live SDK singleton, which needs
+  /// Firebase.
+  ///
+  /// Both clears are unconditional and run after a logout that cannot escape:
+  ///
+  /// - A stored subscriber blob whose `id` is null does not count as logged in,
+  ///   so the gated logout skips it and the blob — name, email, phone — would
+  ///   survive a call that documents itself as clearing all local state.
+  /// - `logoutSubscriber` clears locally and then rethrows when the server call
+  ///   fails. Letting that escape would skip [DeviceService.clearDeviceData],
+  ///   leaving the device id, FCM token and permission state behind.
+  @visibleForTesting
+  static Future<void> clearAllLocalState({
+    required SubscriberService subscriberService,
+    required DeviceService deviceService,
+    required Future<bool> Function() isSubscriberLoggedIn,
+    required Future<void> Function() logoutSubscriber,
+  }) async {
+    try {
+      if (await isSubscriberLoggedIn()) {
+        await logoutSubscriber();
+      }
+    } catch (e) {
+      PushFireLogger.warning(
+          'Logout during reset failed - clearing local state anyway', e);
+    }
+
+    await subscriberService.clearSubscriberData();
+    await deviceService.clearDeviceData();
   }
 
   /// Dispose SDK resources
@@ -618,8 +678,8 @@ class PushFireSDKImpl with WidgetsBindingObserver {
       // Ignore if observer wasn't added or WidgetsBinding is not available
     }
 
-    // Reset flags
-    _isCheckingPermission = false;
+    // Drop the in-flight permission check, if any
+    _permissionCheck = null;
 
     // Cancel stream subscriptions to prevent memory leaks
     _fcmTokenRefreshSubscription?.cancel();
