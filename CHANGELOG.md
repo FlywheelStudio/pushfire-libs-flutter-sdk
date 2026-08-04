@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.3.2]
+
+### Security
+- **Debug logging no longer writes the FCM token or subscriber PII.** With `enableLogging: true`, three sites wrote secrets verbatim: device registration logged `Device.toJson()`, which carries the full FCM token — a send capability, in logs that other tooling reads and crash collectors sweep up; subscriber login logged the whole payload, including name, email, phone and metadata; and tag operations logged tag values, which routinely hold an email, plan or region. Every request body also reached the API request logger verbatim, repeating the same values at debug level. Bodies are now redacted: the token keeps a first/last-ten mask so it stays correlatable with the server, and everything else becomes `<redacted>`. Identifiers — `externalId`, `deviceId`, `subscriberId`, `tagId` — are left readable, since they are what a support ticket is traced by. Response bodies are redacted too, because `register-device` returns the device row and `login-subscriber` the subscriber row. The API key was never affected; the `Authorization` header is not passed to a logger.
+
+### Fixed
+- **`registerDevice` no longer creates duplicate device rows.** It reads the stored device id, makes a network round trip, then writes the id back, with no guard across the awaits. Two callers entering before either wrote both saw no id, both POSTed, and created two device rows for one device — the second write won locally, leaving the first orphaned server-side while it still held the same FCM token. Reachable whenever auto-registration at init, the FCM token-refresh handler, the foreground permission check, or `requestNotificationPermission` overlapped. Registration is now single-flight: concurrent callers join the in-flight attempt, and the guard is released on failure so a failed attempt does not wedge later callers.
+- **Overlapping permission checks are coalesced.** The previous guard covered only the app-resume path, so an FCM token refresh arriving during a resume ran two checks at once. `syncNotificationPermission()` and the token-refresh handler now share one guard, and callers that join it receive null, so one permission change still emits exactly one `onDeviceRegistered`.
+- **`reset()` now clears everything it promises to.** Two failure modes: a stored subscriber blob whose `id` was null did not count as logged in, so the gated logout skipped it and the blob — name, email, phone — survived a call documented as clearing all local state, meaning that on a shared device the next user's session began holding the previous user's details. And `logoutSubscriber` clears locally then rethrows, so a failed logout request escaped `reset()` and `clearDeviceData()` never ran, leaving the device id, FCM token, permission status and preference behind. Both clears are now unconditional and run after a logout that cannot escape.
+
 ## [0.3.1]
 
 ### Fixed
