@@ -78,6 +78,8 @@ class WorkflowService {
   }
 
   /// Create a scheduled workflow execution for subscribers
+  ///
+  /// [scheduledFor] is an absolute instant; a local DateTime is converted to UTC before being sent.
   Future<Map<String, dynamic>> createScheduledWorkflowForSubscribers({
     required String workflowId,
     required List<String> subscriberIds,
@@ -97,6 +99,8 @@ class WorkflowService {
   }
 
   /// Create a scheduled workflow execution for segments
+  ///
+  /// [scheduledFor] is an absolute instant; a local DateTime is converted to UTC before being sent.
   Future<Map<String, dynamic>> createScheduledWorkflowForSegments({
     required String workflowId,
     required List<String> segmentIds,

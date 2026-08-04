@@ -60,7 +60,8 @@ DeviceService buildService(RecordingApiClient api, PlatformState state) {
 /// no PATCH was sent.
 bool? lastPatchedEnabled(RecordingApiClient api) {
   if (api.patchCalls.isEmpty) return null;
-  return api.patchCalls.last['data']['data']['pushNotificationEnabled'] as bool?;
+  return api.patchCalls.last['data']['data']['pushNotificationEnabled']
+      as bool?;
 }
 
 void main() {
@@ -68,7 +69,8 @@ void main() {
 
   setUp(() => SharedPreferences.setMockInitialValues({}));
 
-  test('Case 1 — granted, then REVOKED in settings, app resumed -> server denied',
+  test(
+      'Case 1 — granted, then REVOKED in settings, app resumed -> server denied',
       () async {
     final api = RecordingApiClient();
     final state = PlatformState(true);
@@ -123,8 +125,8 @@ void main() {
     await service.checkAndHandlePermissionStatusChange();
 
     // Server must never be flipped back to enabled against the opt-out.
-    final anyEnabledPatch = api.patchCalls.any((c) =>
-        c['data']['data']['pushNotificationEnabled'] == true);
+    final anyEnabledPatch = api.patchCalls
+        .any((c) => c['data']['data']['pushNotificationEnabled'] == true);
     expect(anyEnabledPatch, isFalse,
         reason: 'developer opt-out must survive an OS re-grant');
   });

@@ -182,24 +182,31 @@ void main() {
       );
     });
 
-    test('saves preference locally even if server call fails', () async {
+    test(
+        'does not save preference locally when the server call fails '
+        '(regression for #6)', () async {
+      // Regression test for issue #6: persisting the preference before the
+      // PATCH meant a failed request left local state saying "changed"
+      // while the server still had the old value — and because
+      // setNotificationEnabled short-circuits when the local preference
+      // already matches the requested value, a retry would report success
+      // without ever contacting the server again. The preference must only
+      // be persisted after the PATCH succeeds.
       final apiClient = FakeApiClient();
       final service = createTestService(apiClient: apiClient);
 
-      await service.registerDevice();
+      await service.registerDevice(); // saves default preference true
       apiClient.shouldThrowOnPatch = true;
 
-      // Should throw but preference should be saved locally
-      try {
-        await service.setNotificationEnabled(false);
-        fail('Expected exception');
-      } on PushFireException {
-        // Expected
-      }
+      // Should throw and leave the local preference unchanged
+      await expectLater(
+        () => service.setNotificationEnabled(false),
+        throwsA(isA<PushFireException>()),
+      );
 
-      // Verify preference was saved locally
+      // Verify preference was NOT saved locally
       final prefs = await SharedPreferences.getInstance();
-      expect(prefs.getBool('pushfire_notification_preference'), false);
+      expect(prefs.getBool('pushfire_notification_preference'), true);
     });
   });
 
@@ -454,6 +461,32 @@ void main() {
 
       final prefs = await SharedPreferences.getInstance();
       expect(prefs.getBool('pushfire_notification_preference'), true);
+    });
+
+    test(
+        'does not PATCH again when OS permission is unchanged and preference '
+        'is off (regression for #5)', () async {
+      // Regression test for issue #5: registerDevice() must compare the
+      // raw OS permission against the raw last-saved OS permission
+      // (lastPermissionStatus), not against the effective value
+      // (osPermission && preference). Comparing raw against effective meant
+      // a device with OS permission granted but the developer preference
+      // set to false would PATCH on every single launch, forever.
+      final apiClient = FakeApiClient();
+      final service = createTestService(apiClient: apiClient);
+
+      // First launch: registers with OS permission granted (default
+      // preference true), then the developer turns notifications off.
+      await service.registerDevice();
+      await service.setNotificationEnabled(false);
+      apiClient.patchCalls.clear();
+
+      // Second launch: same OS permission (granted), same FCM token, same
+      // stored device id, preference still off. Nothing has changed, so no
+      // PATCH should be sent.
+      await service.registerDevice();
+
+      expect(apiClient.patchCalls, isEmpty);
     });
 
     test('does not overwrite existing preference on re-registration', () async {
