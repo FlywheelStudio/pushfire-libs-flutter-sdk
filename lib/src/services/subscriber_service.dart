@@ -23,6 +23,7 @@ class SubscriberService {
     String? email,
     String? phone,
     Map<String, dynamic>? metadata,
+    String? timezone,
   }) async {
     try {
       PushFireLogger.info('Starting subscriber login: $externalId');
@@ -44,6 +45,7 @@ class SubscriberService {
           if (email != null) 'email': email,
           if (phone != null) 'phone': phone,
           if (metadata != null) 'metadata': metadata,
+          if (timezone != null) 'timezone': timezone,
         },
       };
 
@@ -80,6 +82,7 @@ class SubscriberService {
         email: email,
         phone: phone,
         metadata: metadata,
+        timezone: timezone == null || timezone.isEmpty ? null : timezone,
       );
 
       // Store subscriber data
@@ -106,6 +109,7 @@ class SubscriberService {
     String? email,
     String? phone,
     Map<String, dynamic>? metadata,
+    String? timezone,
   }) async {
     try {
       PushFireLogger.info('Updating subscriber: $subscriberId');
@@ -119,6 +123,7 @@ class SubscriberService {
           if (email != null) 'email': email,
           if (phone != null) 'phone': phone,
           if (metadata != null) 'metadata': metadata,
+          if (timezone != null) 'timezone': timezone,
         },
       };
 

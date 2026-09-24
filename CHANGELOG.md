@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.3.3]
+
+### Added
+- `loginSubscriber` and `updateSubscriber` accept an optional IANA `timezone` (for example, `America/New_York`). Omitting it leaves the server value unchanged; pass an empty string to clear it. The current `Subscriber` exposes the timezone and preserves it in local storage.
+
 ## [0.3.2]
 
 ### Security
