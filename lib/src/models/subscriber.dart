@@ -21,6 +21,9 @@ class Subscriber {
   /// Additional metadata as key-value pairs
   final Map<String, dynamic>? metadata;
 
+  /// IANA timezone, for example `America/New_York`. Null means not set.
+  final String? timezone;
+
   const Subscriber({
     this.id,
     this.deviceId,
@@ -29,6 +32,7 @@ class Subscriber {
     this.email,
     this.phone,
     this.metadata,
+    this.timezone,
   });
 
   /// Create a Subscriber from JSON
@@ -43,6 +47,7 @@ class Subscriber {
       metadata: json['metadata'] != null
           ? (json['metadata'] as Map<String, dynamic>)
           : null,
+      timezone: json['timezone'] as String?,
     );
   }
 
@@ -57,6 +62,7 @@ class Subscriber {
     if (email != null) json['email'] = email;
     if (phone != null) json['phone'] = phone;
     if (metadata != null) json['metadata'] = metadata;
+    if (timezone != null) json['timezone'] = timezone;
 
     return json;
   }
@@ -70,6 +76,7 @@ class Subscriber {
     String? email,
     String? phone,
     Map<String, dynamic>? metadata,
+    String? timezone,
   }) {
     return Subscriber(
       id: id ?? this.id,
@@ -79,12 +86,15 @@ class Subscriber {
       email: email ?? this.email,
       phone: phone ?? this.phone,
       metadata: metadata ?? this.metadata,
+      timezone: timezone == null
+          ? this.timezone
+          : (timezone.isEmpty ? null : timezone),
     );
   }
 
   @override
   String toString() {
-    return 'Subscriber(id: $id, externalId: $externalId, name: $name, email: $email, metadata: $metadata)';
+    return 'Subscriber(id: $id, externalId: $externalId, name: $name, email: $email, metadata: $metadata, timezone: $timezone)';
   }
 
   @override
@@ -97,6 +107,7 @@ class Subscriber {
         other.name == name &&
         other.email == email &&
         other.phone == phone &&
+        other.timezone == timezone &&
         _mapEquals(other.metadata, metadata);
   }
 
@@ -109,6 +120,7 @@ class Subscriber {
       name,
       email,
       phone,
+      timezone,
       metadata == null ? null : _deepHashCode(metadata!),
     );
   }

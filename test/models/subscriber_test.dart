@@ -14,6 +14,7 @@ void main() {
     email: 'jane@example.com',
     phone: '+1234567890',
     metadata: {'plan': 'premium', 'age': 30},
+    timezone: 'America/New_York',
   );
 
   final minimalSubscriber = Subscriber(externalId: 'ext-minimal');
@@ -47,6 +48,7 @@ void main() {
       expect(fullSubscriber.email, 'jane@example.com');
       expect(fullSubscriber.phone, '+1234567890');
       expect(fullSubscriber.metadata, {'plan': 'premium', 'age': 30});
+      expect(fullSubscriber.timezone, 'America/New_York');
     });
 
     test('creates subscriber with only required field (externalId)', () {
@@ -102,6 +104,7 @@ void main() {
         'email': 'jane@example.com',
         'phone': '+1234567890',
         'metadata': {'plan': 'premium', 'age': 30},
+        'timezone': 'America/New_York',
       };
 
       final subscriber = Subscriber.fromJson(json);
@@ -113,6 +116,7 @@ void main() {
       expect(subscriber.email, 'jane@example.com');
       expect(subscriber.phone, '+1234567890');
       expect(subscriber.metadata, {'plan': 'premium', 'age': 30});
+      expect(subscriber.timezone, 'America/New_York');
     });
 
     test('parses minimal JSON with only externalId', () {
@@ -202,7 +206,8 @@ void main() {
       expect(json['email'], 'jane@example.com');
       expect(json['phone'], '+1234567890');
       expect(json['metadata'], {'plan': 'premium', 'age': 30});
-      expect(json.length, 7);
+      expect(json['timezone'], 'America/New_York');
+      expect(json.length, 8);
     });
 
     test('serializes with only required fields - null fields omitted', () {
@@ -242,6 +247,7 @@ void main() {
       expect(restored.email, fullSubscriber.email);
       expect(restored.phone, fullSubscriber.phone);
       expect(restored.metadata, fullSubscriber.metadata);
+      expect(restored.timezone, fullSubscriber.timezone);
     });
 
     test('round-trip with nested metadata', () {

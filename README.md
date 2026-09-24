@@ -170,6 +170,7 @@ try {
     name: 'John Doe',
     email: 'john@example.com',
     phone: '+1234567890',
+    timezone: 'America/New_York', // IANA timezone
   );
   
   print('Subscriber logged in: ${subscriber.id}');
@@ -185,6 +186,7 @@ try {
   final updatedSubscriber = await PushFireSDK.instance.updateSubscriber(
     name: 'John Smith',
     email: 'johnsmith@example.com',
+    timezone: 'Europe/London',
   );
   
   print('Subscriber updated: ${updatedSubscriber.name}');
@@ -192,6 +194,12 @@ try {
   print('Update failed: $e');
 }
 ```
+
+`timezone` is optional for both calls. PushFire accepts IANA timezone names such
+as `America/New_York`. Omit it to leave the subscriber timezone unchanged, or
+pass `timezone: ''` to clear a previously set timezone. The returned `Subscriber`
+also exposes `timezone`. Dart's `DateTime.timeZoneName` may be an abbreviation
+such as `EDT`, so do not use it as an IANA timezone identifier.
 
 #### Logout Subscriber
 

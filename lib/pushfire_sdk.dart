@@ -91,6 +91,7 @@ class PushFireSDK {
     String? email,
     String? phone,
     Map<String, dynamic>? metadata,
+    String? timezone,
   }) async {
     if (kIsWeb) return null;
     return await PushFireSDKImpl.instance.loginSubscriber(
@@ -99,6 +100,7 @@ class PushFireSDK {
       email: email,
       phone: phone,
       metadata: metadata,
+      timezone: timezone,
     );
   }
 
@@ -110,6 +112,7 @@ class PushFireSDK {
     String? email,
     String? phone,
     Map<String, dynamic>? metadata,
+    String? timezone,
   }) async {
     if (kIsWeb) return null;
     return await PushFireSDKImpl.instance.updateSubscriber(
@@ -117,6 +120,7 @@ class PushFireSDK {
       email: email,
       phone: phone,
       metadata: metadata,
+      timezone: timezone,
     );
   }
 
