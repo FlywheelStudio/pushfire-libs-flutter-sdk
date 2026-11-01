@@ -821,22 +821,20 @@ class DeviceService {
 
   /// Log permission request result with appropriate context
   void _logPermissionResult(AuthorizationStatus status) {
-    switch (status) {
-      case AuthorizationStatus.authorized:
-        PushFireLogger.info(
-            'Notification permission granted - app can receive notifications');
-        break;
-      case AuthorizationStatus.denied:
-        PushFireLogger.warning(
-            'Notification permission denied - notifications will not be delivered');
-        break;
-      case AuthorizationStatus.provisional:
-        PushFireLogger.info(
-            'Provisional notification permission granted - quiet notifications enabled');
-        break;
-      case AuthorizationStatus.notDetermined:
-        PushFireLogger.info('Notification permission not determined');
-        break;
+    // Not a switch: newer firebase_messaging releases add
+    // AuthorizationStatus.deniedPermanently, which older supported versions
+    // lack, so an exhaustive switch cannot compile against both.
+    if (status == AuthorizationStatus.authorized) {
+      PushFireLogger.info(
+          'Notification permission granted - app can receive notifications');
+    } else if (status == AuthorizationStatus.provisional) {
+      PushFireLogger.info(
+          'Provisional notification permission granted - quiet notifications enabled');
+    } else if (status == AuthorizationStatus.notDetermined) {
+      PushFireLogger.info('Notification permission not determined');
+    } else {
+      PushFireLogger.warning(
+          'Notification permission denied ($status) - notifications will not be delivered');
     }
   }
 }

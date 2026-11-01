@@ -1,5 +1,10 @@
 # Changelog
 
+## [Unreleased]
+
+### Fixed
+- **Apps on firebase_core 4.x or 5.x can now add the SDK.** The firebase_core constraint stopped at `<4.0.0`, so `pub get` failed in any app on a current Firebase release. Supported ranges are now firebase_core `>=3.14.0 <6.0.0`, firebase_messaging `<18.0.0`, firebase_auth `<8.0.0`, device_info_plus `<14.0.0`, package_info_plus `<11.0.0` and permission_handler `<14.0.0`. The direct `firebase_auth_platform_interface` and `firebase_auth_web` dependencies were removed: the SDK never imported them, and their pins blocked newer firebase_auth. Newer firebase_messaging adds `AuthorizationStatus.deniedPermanently`, which is now logged as denied.
+
 ## [0.3.3]
 
 ### Added
