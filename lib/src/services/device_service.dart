@@ -295,6 +295,11 @@ class DeviceService {
       }
 
       // Get token regardless of permission status (for manual permission grants)
+      // getToken is deprecated in firebase_messaging 17 in favour of
+      // register()/onRegistered, which yield a Firebase Installation ID, not
+      // an FCM token, and do not exist before 17. PushFire sends to FCM
+      // tokens and supports 15.x-17.x, so it keeps getToken.
+      // ignore: deprecated_member_use
       final token = await messaging.getToken();
       if (token != null) {
         PushFireLogger.logFcmToken(token);
@@ -375,7 +380,7 @@ class DeviceService {
             'Requesting notification permission via Firebase Messaging (status: ${settings.authorizationStatus})');
 
         settings = await _requestPermissionWithPlatformSettings(messaging);
-        _logPermissionResult(settings.authorizationStatus);
+        logPermissionResult(settings.authorizationStatus);
       } else if (settings.authorizationStatus ==
           AuthorizationStatus.authorized) {
         PushFireLogger.info('Notification permission already granted');
@@ -494,7 +499,7 @@ class DeviceService {
           final messaging = FirebaseMessaging.instance;
           final settings =
               await _requestPermissionWithPlatformSettings(messaging);
-          _logPermissionResult(settings.authorizationStatus);
+          logPermissionResult(settings.authorizationStatus);
           isGranted = settings.authorizationStatus ==
                   AuthorizationStatus.authorized ||
               settings.authorizationStatus == AuthorizationStatus.provisional;
@@ -504,7 +509,7 @@ class DeviceService {
         final messaging = FirebaseMessaging.instance;
         final settings =
             await _requestPermissionWithPlatformSettings(messaging);
-        _logPermissionResult(settings.authorizationStatus);
+        logPermissionResult(settings.authorizationStatus);
         isGranted =
             settings.authorizationStatus == AuthorizationStatus.authorized ||
                 settings.authorizationStatus == AuthorizationStatus.provisional;
@@ -805,7 +810,7 @@ class DeviceService {
             'Android 13+ permission request completed with status: ${settings.authorizationStatus}');
 
         // If still denied after request, log a helpful message
-        if (settings.authorizationStatus == AuthorizationStatus.denied) {
+        if (isDenied(settings.authorizationStatus)) {
           PushFireLogger.warning(
               'Notification permission denied on Android 13+. '
               'Ensure POST_NOTIFICATIONS permission is declared in AndroidManifest.xml');
@@ -819,16 +824,25 @@ class DeviceService {
     }
   }
 
+  /// True for any denied status. Newer firebase_messaging releases add
+  /// AuthorizationStatus.deniedPermanently, which older supported versions
+  /// lack, so it cannot be named directly.
+  @visibleForTesting
+  static bool isDenied(AuthorizationStatus status) =>
+      status != AuthorizationStatus.authorized &&
+      status != AuthorizationStatus.provisional &&
+      status != AuthorizationStatus.notDetermined;
+
   /// Log permission request result with appropriate context
-  void _logPermissionResult(AuthorizationStatus status) {
+  @visibleForTesting
+  static void logPermissionResult(AuthorizationStatus status) {
+    // `denied` is handled by `default` so deniedPermanently (newer
+    // firebase_messaging only) lands there too, and the default stays
+    // reachable on older versions that lack it.
     switch (status) {
       case AuthorizationStatus.authorized:
         PushFireLogger.info(
             'Notification permission granted - app can receive notifications');
-        break;
-      case AuthorizationStatus.denied:
-        PushFireLogger.warning(
-            'Notification permission denied - notifications will not be delivered');
         break;
       case AuthorizationStatus.provisional:
         PushFireLogger.info(
@@ -837,6 +851,9 @@ class DeviceService {
       case AuthorizationStatus.notDetermined:
         PushFireLogger.info('Notification permission not determined');
         break;
+      default:
+        PushFireLogger.warning(
+            'Notification permission denied ($status) - notifications will not be delivered');
     }
   }
 }

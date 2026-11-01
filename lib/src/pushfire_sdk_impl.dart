@@ -228,7 +228,11 @@ class PushFireSDKImpl with WidgetsBindingObserver {
 
   /// Set up FCM token refresh listener
   void _setupFcmTokenRefreshListener() {
+    // onTokenRefresh is deprecated in firebase_messaging 17; its replacement,
+    // onRegistered, emits a Firebase Installation ID rather than an FCM
+    // token. See DeviceService for why PushFire keeps the token APIs.
     _fcmTokenRefreshSubscription =
+        // ignore: deprecated_member_use
         FirebaseMessaging.instance.onTokenRefresh.listen((newToken) async {
       try {
         PushFireLogger.info('FCM token refreshed');

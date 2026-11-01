@@ -42,6 +42,27 @@ jobs:
       - name: Run tests
         run: flutter test
 
+  # Resolve every dependency to its lowest allowed version, so the lower
+  # bounds in pubspec.yaml stay honest.
+  lowest-deps:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+
+      - name: Resolve lowest dependency versions
+        run: flutter pub downgrade
+
+      - name: Analyze
+        run: flutter analyze --no-fatal-infos --no-fatal-warnings lib/
+
+      - name: Run tests
+        run: flutter test
+
   dry-run:
     runs-on: ubuntu-latest
     steps:
