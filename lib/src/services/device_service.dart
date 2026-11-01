@@ -805,7 +805,7 @@ class DeviceService {
             'Android 13+ permission request completed with status: ${settings.authorizationStatus}');
 
         // If still denied after request, log a helpful message
-        if (settings.authorizationStatus == AuthorizationStatus.denied) {
+        if (_isDenied(settings.authorizationStatus)) {
           PushFireLogger.warning(
               'Notification permission denied on Android 13+. '
               'Ensure POST_NOTIFICATIONS permission is declared in AndroidManifest.xml');
@@ -819,22 +819,34 @@ class DeviceService {
     }
   }
 
+  /// True for any denied status. Newer firebase_messaging releases add
+  /// AuthorizationStatus.deniedPermanently, which older supported versions
+  /// lack, so it cannot be named directly.
+  bool _isDenied(AuthorizationStatus status) =>
+      status != AuthorizationStatus.authorized &&
+      status != AuthorizationStatus.provisional &&
+      status != AuthorizationStatus.notDetermined;
+
   /// Log permission request result with appropriate context
   void _logPermissionResult(AuthorizationStatus status) {
-    // Not a switch: newer firebase_messaging releases add
-    // AuthorizationStatus.deniedPermanently, which older supported versions
-    // lack, so an exhaustive switch cannot compile against both.
-    if (status == AuthorizationStatus.authorized) {
-      PushFireLogger.info(
-          'Notification permission granted - app can receive notifications');
-    } else if (status == AuthorizationStatus.provisional) {
-      PushFireLogger.info(
-          'Provisional notification permission granted - quiet notifications enabled');
-    } else if (status == AuthorizationStatus.notDetermined) {
-      PushFireLogger.info('Notification permission not determined');
-    } else {
-      PushFireLogger.warning(
-          'Notification permission denied ($status) - notifications will not be delivered');
+    // `denied` is handled by `default` so deniedPermanently (newer
+    // firebase_messaging only) lands there too, and the default stays
+    // reachable on older versions that lack it.
+    switch (status) {
+      case AuthorizationStatus.authorized:
+        PushFireLogger.info(
+            'Notification permission granted - app can receive notifications');
+        break;
+      case AuthorizationStatus.provisional:
+        PushFireLogger.info(
+            'Provisional notification permission granted - quiet notifications enabled');
+        break;
+      case AuthorizationStatus.notDetermined:
+        PushFireLogger.info('Notification permission not determined');
+        break;
+      default:
+        PushFireLogger.warning(
+            'Notification permission denied ($status) - notifications will not be delivered');
     }
   }
 }
